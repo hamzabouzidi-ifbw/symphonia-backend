@@ -6,16 +6,44 @@ import com.example.authentification.Entities.User;
 import com.example.authentification.Repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import javax.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import javax.annotation.PostConstruct;
 
 @Service
 public class UserService  {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    private final EmailService emailService;
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+    }
+    @PostConstruct
+    public void createSuperAdmin() {
+        String superAdminEmail = "hamzabouzidi@ifbw.net";
+        String defaultPassword = "ifbw_symphonia";
+
+        if (!userRepository.existsByEmail(superAdminEmail)) {
+            // Création du Super Admin
+            User superAdmin = new User(superAdminEmail, passwordEncoder.encode(defaultPassword), Role.SUPER_ADMIN);
+            userRepository.save(superAdmin);
+            System.out.println("✅ Super Admin créé avec succès !");
+
+            // Envoyer un e-mail après création
+            String subject = "Votre compte Super Admin est prêt !";
+            String body = "<h2>Bonjour Super Admin,</h2>"
+                    + "<p>Votre compte a été créé avec succès.</p>"
+                    + "<p><strong>Email:</strong> " + superAdminEmail + "</p>"
+                    + "<p><strong>Mot de passe:</strong> " + defaultPassword + "</p>"
+                    + "<p>Veuillez changer votre mot de passe après votre première connexion.</p>";
+
+            emailService.sendEmail(superAdminEmail, subject, body);
+        } else {
+            System.out.println("ℹ️ Super Admin existe déjà.");
+        }
     }
 
     public String registerUser(String email, String password, Role role) {
