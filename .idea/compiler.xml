@@ -13,6 +13,15 @@
         <module name="project-service" />
         <module name="eureka" />
       </profile>
+      <profile name="Annotation profile for Parent Spring Cloud Project" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/unknown/lombok-unknown.jar" />
+        </processorPath>
+        <module name="authentification" />
+      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="oauth2-service" target="17" />
@@ -23,6 +32,7 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="api-gateway" options="-parameters" />
       <module name="auth-service" options="-parameters" />
+      <module name="authentification" options="-parameters" />
       <module name="eureka" options="-parameters" />
       <module name="oauth2-service" options="-parameters" />
       <module name="project-service" options="-parameters" />
