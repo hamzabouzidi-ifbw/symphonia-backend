@@ -21,6 +21,10 @@ public class UserService  {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
     }
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec l'email : " + email));
+    }
     @PostConstruct
     public void createSuperAdmin() {
         String superAdminEmail = "hamzabouzidi@ifbw.net";
