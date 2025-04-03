@@ -27,4 +27,3 @@ public class MyUserDetailsService implements UserDetailsService {
                 AuthorityUtils.createAuthorityList(user.getRole().toString()));
     }
 }
-
