@@ -52,7 +52,6 @@ public class UserService  {
 
     public String registerUser(String email, String password, Role role) {
         try {
-            // Vérifie si l'utilisateur existe déjà
             if (userRepository.existsByEmail(email)) {
                 throw new UserAlreadyExistsException("L'utilisateur avec cet email existe déjà");
             }

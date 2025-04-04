@@ -50,14 +50,10 @@ public class authController {
       // Générer le token JWT
       String jwt = jwtService.generateToken(loginRequest.getEmail());
 
-      // Récupérer l'utilisateur et son rôle
+     
       User user = userService.findByEmail(loginRequest.getEmail());
       String role = user.getRole().name();
-
-      // Message de bienvenue
       String message = role.equals("SUPER_ADMIN") ? "Hello Super Admin" : "Hello User";
-
-      // Réponse JSON
       Map<String, Object> response = new HashMap<>();
       response.put("token", jwt);
       response.put("role", role);
