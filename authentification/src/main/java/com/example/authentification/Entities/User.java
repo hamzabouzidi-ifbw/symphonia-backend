@@ -1,8 +1,4 @@
 package com.example.authentification.Entities;
-
-
-
-
 import javax.persistence.*;
 
 @Entity

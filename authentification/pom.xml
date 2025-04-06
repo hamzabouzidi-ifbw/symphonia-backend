@@ -104,6 +104,7 @@
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
+
         <!-- Dépendance pour Springdoc OpenAPI -->
         <dependency>
             <groupId>io.springfox</groupId>
