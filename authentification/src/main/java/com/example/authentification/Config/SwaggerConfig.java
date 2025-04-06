@@ -1,4 +1,4 @@
-package com.example.authentification.swaggerConfig;
+package com.example.authentification.Config;
 
 
 import org.springdoc.core.models.GroupedOpenApi;
