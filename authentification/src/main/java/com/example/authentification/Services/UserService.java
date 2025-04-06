@@ -34,7 +34,7 @@ public class UserService  {
             // Création du Super Admin
             User superAdmin = new User(superAdminEmail, passwordEncoder.encode(defaultPassword), Role.SUPER_ADMIN);
             userRepository.save(superAdmin);
-            System.out.println("✅ Super Admin créé avec succès !");
+            System.out.println("Super Admin créé avec succès !");
 
             // Envoyer un e-mail après création
             String subject = "Votre compte Super Admin est prêt !";

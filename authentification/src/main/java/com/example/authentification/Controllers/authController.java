@@ -49,8 +49,6 @@ public class authController {
 
       // Générer le token JWT
       String jwt = jwtService.generateToken(loginRequest.getEmail());
-
-     
       User user = userService.findByEmail(loginRequest.getEmail());
       String role = user.getRole().name();
       String message = role.equals("SUPER_ADMIN") ? "Hello Super Admin" : "Hello User";

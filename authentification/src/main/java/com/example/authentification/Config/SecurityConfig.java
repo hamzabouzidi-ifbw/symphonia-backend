@@ -1,4 +1,4 @@
-package com.example.authentification.SecurityConfig;
+package com.example.authentification.Config;
 
 
 import com.example.authentification.Services.MyUserDetailsService;
