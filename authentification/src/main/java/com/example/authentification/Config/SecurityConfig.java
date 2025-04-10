@@ -1,6 +1,6 @@
 package com.example.authentification.Config;
 
-
+import com.example.authentification.Services.JwtService;
 import com.example.authentification.Services.MyUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -13,13 +13,15 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private MyUserDetailsService myUserDetailsService;
+
+    @Autowired
+    private JwtService jwtService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -35,10 +37,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()  // Permet l'accès aux ressources Swagger
                 .antMatchers("/authentification/login", "/authentification/register").permitAll()
-                .anyRequest().authenticated();
+                .anyRequest().authenticated()
+                .and()
+                .addFilter(new JwtAuthenticationFilter(jwtService, myUserDetailsService));  // Ajouter le filtre JWT ici
     }
 
-    // Declare the AuthenticationManager bean for use in your controller
     @Bean
     @Override
     public AuthenticationManager authenticationManagerBean() throws Exception {
@@ -50,46 +53,3 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 }
-/*
-
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-                .csrf().disable()
-                .authorizeRequests()
-                .antMatchers("/authentification/login", "/authentification/register").permitAll()  // Autoriser l'accès à ces routes sans authentification
-                .anyRequest().authenticated()  // Protéger toutes les autres routes
-                .and()
-                .formLogin()  // Optionnel : activer la gestion du formulaire de connexion
-                .permitAll()
-                .and()
-                .httpBasic();  // Optionnel : pour l'authentification de base HTTP
-    }
-
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        // Configurez la gestion de l'authentification ici (par exemple, en utilisant UserDetailsService)
-        auth.inMemoryAuthentication()
-                .withUser("admin")
-                .password(passwordEncoder().encode("password"))
-                .roles("USER");
-    }
-
-    // Définir un bean AuthenticationManager
-    @Bean
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
-    }
-
-    // Définir un PasswordEncoder (par exemple, BCryptPasswordEncoder)
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-}
-*/

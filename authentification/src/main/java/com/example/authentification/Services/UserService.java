@@ -49,6 +49,19 @@ public class UserService  {
             System.out.println("ℹ️ Super Admin existe déjà.");
         }
     }
+    public User updateUserDetails(String currentEmail, String newEmail, String newPassword) {
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (newEmail != null && !newEmail.isEmpty()) {
+            user.setEmail(newEmail);  // Mise à jour de l'email
+        }
+        if (newPassword != null && !newPassword.isEmpty()) {
+            user.setPassword(passwordEncoder.encode(newPassword));  // Mise à jour du mot de passe
+        }
+
+        return userRepository.save(user);  // Enregistrer l'utilisateur mis à jour
+    }
 
     public String registerUser(String email, String password, Role role) {
         try {

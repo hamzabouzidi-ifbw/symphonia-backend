@@ -17,6 +17,11 @@
       <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="freeswitch-maven-repo" />
+      <option name="name" value="freeswitch-maven-repo" />
+      <option name="url" value="https://files.freeswitch.org/maven2/" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="spring-cloud-release" />
       <option name="name" value="spring-cloud-release" />
       <option name="url" value="https://repo.spring.io/release" />

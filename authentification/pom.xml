@@ -118,6 +118,28 @@
             <artifactId>springdoc-openapi-starter-common</artifactId>
             <version>2.5.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.freeswitch.esl.client</groupId>
+            <artifactId>org.freeswitch.esl.client</artifactId>
+            <version>0.9.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.2</version>
+        </dependency>
+
     </dependencies>
 
     <build>
