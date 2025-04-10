@@ -47,7 +47,9 @@ public class authController {
 
         try {
             // Mise à jour des informations utilisateur
-            User updatedUser = userService.updateUserDetails(currentEmail, user.getEmail(), user.getPassword());
+            // Si le mot de passe est présent, on le met à jour aussi
+            String newPassword = user.getPassword() != null && !user.getPassword().isEmpty() ? user.getPassword() : null;
+            User updatedUser = userService.updateUserDetails(currentEmail, user.getEmail(), newPassword);
             return ResponseEntity.ok(updatedUser);  // Retourner l'utilisateur mis à jour
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Erreur lors de la mise à jour : " + e.getMessage());
@@ -61,27 +63,27 @@ public class authController {
         System.out.println("Authentification réussie pour l'utilisateur : " + loginRequest.getEmail());
         return jwtService.generateToken(loginRequest.getEmail());
     }*/
-  @PostMapping("/login")
-  public ResponseEntity<?> login(@RequestBody authDto loginRequest) {
-      Authentication authentication = authenticationManager.authenticate(
-              new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
-      );
-      SecurityContextHolder.getContext().setAuthentication(authentication);
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody authDto loginRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      // Générer le token JWT
-      String jwt = jwtService.generateToken(loginRequest.getEmail());
-      User user = userService.findByEmail(loginRequest.getEmail());
-      String role = user.getRole().name();
-      String message = role.equals("SUPER_ADMIN") ? "Hello Super Admin" : "Hello User";
-      Map<String, Object> response = new HashMap<>();
-      response.put("token", jwt);
-      response.put("role", role);
-      response.put("message", message);
-      response.put("userDetails", user);
+        // Récupérer le rôle de l'utilisateur
+        User user = userService.findByEmail(loginRequest.getEmail());
+        String role = user.getRole().name();  // Obtient le rôle de l'utilisateur
+        String jwt = jwtService.generateToken(loginRequest.getEmail(), role);  // Passe l'email et le rôle
 
-      return ResponseEntity.ok(response);
-  }
+        String message = role.equals("SUPER_ADMIN") ? "Hello Super Admin" : "Hello User";
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", jwt);
+        response.put("role", role);
+        response.put("message", message);
+        response.put("userDetails", user);
 
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/logout")
     public String logout() {

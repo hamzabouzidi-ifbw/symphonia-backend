@@ -53,7 +53,7 @@ public class UserService  {
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        if (newEmail != null && !newEmail.isEmpty()) {
+        if (newEmail != null && !newEmail.isEmpty() && !newEmail.equals(currentEmail)) {
             user.setEmail(newEmail);  // Mise à jour de l'email
         }
         if (newPassword != null && !newPassword.isEmpty()) {
@@ -62,6 +62,7 @@ public class UserService  {
 
         return userRepository.save(user);  // Enregistrer l'utilisateur mis à jour
     }
+
 
     public String registerUser(String email, String password, Role role) {
         try {
