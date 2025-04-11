@@ -28,7 +28,7 @@ public class UserService  {
     @PostConstruct
     public void createSuperAdmin() {
         String superAdminEmail = "raniabensalem53@gmail.com";
-        String defaultPassword = "ifbw_symphonia";
+        String defaultPassword = "rania123";
 
         if (!userRepository.existsByEmail(superAdminEmail)) {
             // Création du Super Admin
@@ -49,6 +49,20 @@ public class UserService  {
             System.out.println("ℹ️ Super Admin existe déjà.");
         }
     }
+    public User updateUserDetails(String currentEmail, String newEmail, String newPassword) {
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (newEmail != null && !newEmail.isEmpty() && !newEmail.equals(currentEmail)) {
+            user.setEmail(newEmail);  // Mise à jour de l'email
+        }
+        if (newPassword != null && !newPassword.isEmpty()) {
+            user.setPassword(passwordEncoder.encode(newPassword));  // Mise à jour du mot de passe
+        }
+
+        return userRepository.save(user);  // Enregistrer l'utilisateur mis à jour
+    }
+
 
     public String registerUser(String email, String password, Role role) {
         try {
@@ -69,5 +83,24 @@ public class UserService  {
             throw new RuntimeException("Erreur lors de l'enregistrement de l'utilisateur: " + e.getMessage());
         }
     }
+    /*public String registerUser(String email, String password, Role role) {
+        try {
+            // Vérifiez si l'utilisateur existe déjà
+            if (userRepository.existsByEmail(email)) {
+                throw new UserAlreadyExistsException("L'utilisateur avec cet email existe déjà");
+            }
+
+            // Logic pour enregistrer l'utilisateur
+            User newUser = new User(email, password, role);
+            userRepository.save(newUser);
+
+            // Retourner une réponse
+            return "Utilisateur enregistré avec succès";
+
+        } catch (Exception e) {
+            // Gérer l'exception et retourner une erreur appropriée
+            throw new RuntimeException("Erreur lors de l'enregistrement de l'utilisateur: " + e.getMessage());
+        }
+    }*/
 
 }

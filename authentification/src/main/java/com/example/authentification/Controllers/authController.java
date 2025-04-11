@@ -7,6 +7,7 @@ import com.example.authentification.Repositories.UserRepository;
 import com.example.authentification.Services.JwtService;
 import com.example.authentification.Services.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,36 @@ public class authController {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
     }
+    @PutMapping("/update-profile")
+    @PreAuthorize("isAuthenticated()")  // Assurez-vous que l'utilisateur est authentifié
+    public ResponseEntity<?> updateProfile(@RequestBody User user) {
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentEmail = authentication.getName();  // L'email de l'utilisateur actuellement connecté
 
+        // Vérifiez si l'utilisateur connecté essaie de mettre à jour son propre profil
+        if (!currentEmail.equals(user.getEmail())) {
+            return ResponseEntity.status(403).body("Vous ne pouvez pas mettre à jour le profil d'un autre utilisateur.");
+        }
+
+        try {
+            // Mise à jour des informations utilisateur
+            // Si le mot de passe est présent, on le met à jour aussi
+            String newPassword = user.getPassword() != null && !user.getPassword().isEmpty() ? user.getPassword() : null;
+            User updatedUser = userService.updateUserDetails(currentEmail, user.getEmail(), newPassword);
+            return ResponseEntity.ok(updatedUser);  // Retourner l'utilisateur mis à jour
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Erreur lors de la mise à jour : " + e.getMessage());
+        }
+    }
+
+    /**  @PostMapping("/login")
+    public String login(@RequestBody authDto loginRequest) {
+    System.out.println("Essai de login avec l'email : " + loginRequest.getEmail());
+    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
+    System.out.println("Authentification réussie pour l'utilisateur : " + loginRequest.getEmail());
+    return jwtService.generateToken(loginRequest.getEmail());
+    }*/
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody authDto loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -40,10 +70,11 @@ public class authController {
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // Générer le token JWT
-        String jwt = jwtService.generateToken(loginRequest.getEmail());
+        // Récupérer le rôle de l'utilisateur
         User user = userService.findByEmail(loginRequest.getEmail());
-        String role = user.getRole().name();
+        String role = user.getRole().name();  // Obtient le rôle de l'utilisateur
+        String jwt = jwtService.generateToken(loginRequest.getEmail(), role);  // Passe l'email et le rôle
+
         String message = role.equals("SUPER_ADMIN") ? "Hello Super Admin" : "Hello User";
         Map<String, Object> response = new HashMap<>();
         response.put("token", jwt);
@@ -53,7 +84,6 @@ public class authController {
 
         return ResponseEntity.ok(response);
     }
-
 
     @GetMapping("/logout")
     public String logout() {
@@ -68,6 +98,12 @@ public class authController {
         User user = userService.findByEmail(email);
         return user;
     }
+    /*   @PostMapping
+    @RequestMapping(value ="/login")
+    public String login(@RequestParam String email, @RequestParam String password) {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+        return jwtService.generateToken(email);
+    }*/
     @PostMapping("/register")
     public String register(@RequestBody User user) {
         return userService.registerUser(user.getEmail(), user.getPassword(), user.getRole());

@@ -21,6 +21,7 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/unknown/lombok-unknown.jar" />
         </processorPath>
         <module name="authentification" />
+        <module name="licenses" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -34,6 +35,7 @@
       <module name="auth-service" options="-parameters" />
       <module name="authentification" options="-parameters" />
       <module name="eureka" options="-parameters" />
+      <module name="licenses" options="-parameters" />
       <module name="oauth2-service" options="-parameters" />
       <module name="project-service" options="-parameters" />
       <module name="user-service" options="-parameters" />
