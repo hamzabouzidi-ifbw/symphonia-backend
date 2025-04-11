@@ -23,6 +23,7 @@
         <module>api-gateway</module>
         <module>eureka</module>
         <module>authentification</module>
+        <module>licenses</module>
 
     </modules>
 
