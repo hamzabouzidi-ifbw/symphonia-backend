@@ -23,7 +23,6 @@ public class LicenceDefinitionService {
     }
 
     public LicenceDefinition create(LicenceDefinition def) {
-        def.setNbreTenant(0); // sécurité supplémentaire
         return repository.save(def);
     }
 
