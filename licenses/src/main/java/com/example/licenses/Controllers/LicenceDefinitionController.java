@@ -20,11 +20,13 @@ public class LicenceDefinitionController {
     private LicenceDefinitionService service;
 
     @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<LicenceDefinition> getAll() {
         return service.findAll();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public LicenceDefinition getById(@PathVariable UUID id) {
         return service.findById(id);
     }
@@ -48,11 +50,13 @@ public class LicenceDefinitionController {
 
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public LicenceDefinition update(@PathVariable UUID id, @RequestBody LicenceDefinition def) {
         return service.update(id, def);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.ok().build();
