@@ -8,7 +8,8 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @EnableDiscoveryClient
 @OpenAPIDefinition
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.example.licenses")
+
 public class LicensesApplication {
 
     public static void main(String[] args) {

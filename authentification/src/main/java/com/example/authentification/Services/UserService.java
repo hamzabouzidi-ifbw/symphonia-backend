@@ -28,7 +28,7 @@ public class UserService  {
     @PostConstruct
     public void createSuperAdmin() {
         String superAdminEmail = "raniabensalem53@gmail.com";
-        String defaultPassword = "rania123";
+        String defaultPassword = "ifbw_symphonia";
 
         if (!userRepository.existsByEmail(superAdminEmail)) {
             // Création du Super Admin
