@@ -1,6 +1,5 @@
 package com.example.licenses.Repositories;
 
-
 import com.example.licenses.Entities.LicenceDefinition;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

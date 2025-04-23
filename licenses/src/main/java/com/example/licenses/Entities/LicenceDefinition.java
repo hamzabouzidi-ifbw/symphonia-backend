@@ -1,10 +1,10 @@
 package com.example.licenses.Entities;
-
 import javax.persistence.*;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
+@Table(name = "licence_definition ")
 public class LicenceDefinition {
     @Id
     @GeneratedValue

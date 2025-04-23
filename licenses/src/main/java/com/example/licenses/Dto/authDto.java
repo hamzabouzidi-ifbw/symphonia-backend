@@ -3,7 +3,7 @@ package com.example.licenses.Dto;
 public class authDto {
     private String email;
     private String password;
-
+    private String role;
     // Getters et Setters
     public String getEmail() {
         return email;
@@ -19,5 +19,12 @@ public class authDto {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

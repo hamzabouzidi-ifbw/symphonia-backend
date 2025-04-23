@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/licence-definitions")
+@RequestMapping("licenses")
 public class LicenceDefinitionController {
 
     @Autowired
@@ -28,20 +28,22 @@ public class LicenceDefinitionController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> create(@RequestBody LicenceDefinition def) {
+        LicenceDefinition createdLicence = service.create(def);
 
-    public LicenceDefinition create(@RequestBody LicenceDefinition def) {
-
-        return service.create(def);
+        // Message de succès
+        return ResponseEntity.status(201) // 201 Created
+                .body("Licence created successfully with ID: " + createdLicence.getId());
     }
 
+
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
     public LicenceDefinition update(@PathVariable UUID id, @RequestBody LicenceDefinition def) {
         return service.update(id, def);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
     public ResponseEntity<?> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.ok().build();
