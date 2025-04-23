@@ -19,19 +19,8 @@ public class LicenceDefinitionController {
     @Autowired
     private LicenceDefinitionService service;
 
-    @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public List<LicenceDefinition> getAll() {
-        return service.findAll();
-    }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public LicenceDefinition getById(@PathVariable UUID id) {
-        return service.findById(id);
-    }
 
-    // Ajouter une licence (exemple)
     @PostMapping("/add")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> addLicense(@RequestBody LicenceDefinition def,
@@ -47,6 +36,20 @@ public class LicenceDefinitionController {
                     .body("You do not have permission to create a licence.");
         }
     }
+
+    @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<LicenceDefinition> getAll() {
+        return service.findAll();
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public LicenceDefinition getById(@PathVariable UUID id) {
+        return service.findById(id);
+    }
+
+
 
 
     @PutMapping("/{id}")

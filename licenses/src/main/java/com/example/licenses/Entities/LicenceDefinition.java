@@ -1,5 +1,6 @@
 package com.example.licenses.Entities;
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +16,23 @@ public class LicenceDefinition {
 
     @ElementCollection
     private List<String> features; // définies une seule fois
+
+
+    @Column(name = "nbre_tenant")
+    private int nbreTenant = 0; // Valeur par défaut
+
+    @Column(name = "expired_date")
+    private LocalDate expiredDate;
+
+
+    public LocalDate getExpiredDate() {
+        return expiredDate;
+    }
+
+    public void setExpiredDate(LocalDate expiredDate) {
+        this.expiredDate = expiredDate;
+    }
+
     // Getters and setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -22,4 +40,11 @@ public class LicenceDefinition {
     public void setType(LicenceType type) { this.type = type; }
     public List<String> getFeatures() { return features; }
     public void setFeatures(List<String> features) { this.features = features; }
+    public int getNbreTenant() {
+        return nbreTenant;
+    }
+
+    public void setNbreTenant(int nbreTenant) {
+        this.nbreTenant = nbreTenant;
+    }
 }
