@@ -7,14 +7,19 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.util.Base64;
 import java.util.Date;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
 
-    // Clé secrète sécurisée de 256 bits (32 octets) pour HS256
-    private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+
+    // Clé secrète statique Base64 (256 bits = 32 octets)
+    private static final String SECRET = "mMa5+P4nIuU1XvYk3pR9qTfWsEc8LjZb7dCgAhQkZxA=";
+
+    // Conversion en SecretKey utilisable par jjwt
+    private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(Base64.getDecoder().decode(SECRET));
 
     // Durée d'expiration du token (10 heures ici)
     private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 10;
