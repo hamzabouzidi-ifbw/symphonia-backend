@@ -31,6 +31,7 @@ public class LicenceDefinitionController {
 
     // Ajouter une licence (exemple)
     @PostMapping("/add")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> addLicense(@RequestBody LicenceDefinition def,
                                         @RequestHeader("role") String role) {
 

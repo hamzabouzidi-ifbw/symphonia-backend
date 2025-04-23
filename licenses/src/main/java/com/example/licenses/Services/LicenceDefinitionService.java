@@ -3,6 +3,7 @@ package com.example.licenses.Services;
 import com.example.licenses.Entities.LicenceDefinition;
 import com.example.licenses.Repositories.LicenceDefinitionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
