@@ -1,10 +1,10 @@
-package com.example.authentification;
+package com.example.licenses;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AuthentificationApplicationTests {
+class LicensesApplicationTests {
 
     @Test
     void contextLoads() {

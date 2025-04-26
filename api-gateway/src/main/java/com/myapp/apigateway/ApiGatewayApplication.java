@@ -23,7 +23,7 @@ public class ApiGatewayApplication {
         return  builder.routes()
                 .route("authentification", r->r.path("/authentification/**")
                         .uri("http://localhost:8084/"))
-               .route("licenses", r->r.path("/licenses/**")
+                .route("licenses", r->r.path("/licenses/**")
                         .uri("http://localhost:8085/"))
                 .build();
     }

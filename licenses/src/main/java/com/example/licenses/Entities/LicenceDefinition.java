@@ -1,5 +1,6 @@
 package com.example.licenses.Entities;
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +16,9 @@ public class LicenceDefinition {
 
     @ElementCollection
     private List<String> features; // définies une seule fois
+
+
+
     // Getters and setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -23,4 +27,3 @@ public class LicenceDefinition {
     public List<String> getFeatures() { return features; }
     public void setFeatures(List<String> features) { this.features = features; }
 }
-
