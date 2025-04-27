@@ -3,5 +3,5 @@ public enum LicenceType {
     BASIQUE,
     PRO,
     PREMIUM,
-    SERVICE
+    SERVICE_CLIENT
 }
