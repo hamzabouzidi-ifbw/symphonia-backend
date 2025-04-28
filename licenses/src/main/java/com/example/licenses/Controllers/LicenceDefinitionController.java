@@ -2,14 +2,13 @@ package com.example.licenses.Controllers;
 
 import com.example.licenses.Entities.LicenceDefinition;
 import com.example.licenses.Services.LicenceDefinitionService;
+import com.example.licenses.dto.LicenceDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpServletRequest;
-import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -26,14 +25,18 @@ public class LicenceDefinitionController {
     public ResponseEntity<?> addLicense(@RequestBody LicenceDefinition def,
                                         @RequestHeader("role") String role) {
 
-        // Vérifier que l'utilisateur est un super admin
         if ("SUPER_ADMIN".equals(role)) {
             LicenceDefinition createdLicence = service.create(def);
-            return ResponseEntity.status(201)  // 201 Created
-                    .body("Licence created successfully with ID: " + createdLicence.getId());
+
+            LicenceDTO response = new LicenceDTO(
+
+                    createdLicence.getId(),
+                    createdLicence
+            );
+
+            return ResponseEntity.status(201).body(response);
         } else {
-            return ResponseEntity.status(403)  // 403 Forbidden
-                    .body("You do not have permission to create a licence.");
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to create a licence."));
         }
     }
 

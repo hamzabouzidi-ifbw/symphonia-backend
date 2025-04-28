@@ -83,24 +83,6 @@ public class UserService  {
             throw new RuntimeException("Erreur lors de l'enregistrement de l'utilisateur: " + e.getMessage());
         }
     }
-    /*public String registerUser(String email, String password, Role role) {
-        try {
-            // Vérifiez si l'utilisateur existe déjà
-            if (userRepository.existsByEmail(email)) {
-                throw new UserAlreadyExistsException("L'utilisateur avec cet email existe déjà");
-            }
 
-            // Logic pour enregistrer l'utilisateur
-            User newUser = new User(email, password, role);
-            userRepository.save(newUser);
-
-            // Retourner une réponse
-            return "Utilisateur enregistré avec succès";
-
-        } catch (Exception e) {
-            // Gérer l'exception et retourner une erreur appropriée
-            throw new RuntimeException("Erreur lors de l'enregistrement de l'utilisateur: " + e.getMessage());
-        }
-    }*/
 
 }
