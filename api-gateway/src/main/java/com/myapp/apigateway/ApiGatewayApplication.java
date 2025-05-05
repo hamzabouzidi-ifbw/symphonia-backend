@@ -25,6 +25,8 @@ public class ApiGatewayApplication {
                         .uri("http://localhost:8084/"))
                 .route("licenses", r->r.path("/licenses/**")
                         .uri("http://localhost:8085/"))
+                .route("tenant", r->r.path("/tenant/**")
+                        .uri("http://localhost:8086/"))
                 .build();
     }
 

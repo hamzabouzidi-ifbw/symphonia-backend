@@ -22,6 +22,7 @@
         </processorPath>
         <module name="authentification" />
         <module name="licenses" />
+        <module name="tenant" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -38,6 +39,7 @@
       <module name="licenses" options="-parameters" />
       <module name="oauth2-service" options="-parameters" />
       <module name="project-service" options="-parameters" />
+      <module name="tenant" options="-parameters" />
       <module name="user-service" options="-parameters" />
     </option>
   </component>
