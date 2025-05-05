@@ -26,6 +26,7 @@ public class LicenceDefinitionController {
                                         @RequestHeader("role") String role) {
 
         if ("SUPER_ADMIN".equals(role)) {
+
             LicenceDefinition createdLicence = service.create(def);
 
             LicenceDTO response = new LicenceDTO(

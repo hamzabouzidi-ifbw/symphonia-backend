@@ -23,6 +23,7 @@ public class LicenceDefinitionService {
     }
 
     public LicenceDefinition create(LicenceDefinition def) {
+        def.setKey(generateLicenseKey()); // Génération de la clé ici
         return repository.save(def);
     }
 
@@ -35,5 +36,8 @@ public class LicenceDefinitionService {
 
     public void delete(UUID id) {
         repository.deleteById(id);
+    }
+    private String generateLicenseKey() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
 }

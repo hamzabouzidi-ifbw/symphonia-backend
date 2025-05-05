@@ -17,6 +17,8 @@ public class LicenceDefinition {
     @ElementCollection
     private List<String> features; // définies une seule fois
 
+    @Column(unique = true, nullable = false)
+    private String key; // La clé ou le code de la licence
 
 
     // Getters and setters
@@ -26,4 +28,6 @@ public class LicenceDefinition {
     public void setType(LicenceType type) { this.type = type; }
     public List<String> getFeatures() { return features; }
     public void setFeatures(List<String> features) { this.features = features; }
+    public String getKey() { return key; }
+    public void setKey(String key) { this.key = key; }
 }
