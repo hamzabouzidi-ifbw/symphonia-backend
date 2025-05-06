@@ -38,7 +38,7 @@ public class TenantService {
 
         tenantRepository.save(tenant);
 
-     // 2. Générer mot de passe aléatoire
+        // 2. Générer mot de passe aléatoire
         String password = UUID.randomUUID().toString().substring(0, 10);
 
         // 3. Envoyer les infos à auth-service
@@ -48,9 +48,16 @@ public class TenantService {
         userRequest.setRole("ADMIN_TENANT");
         userRequest.setTenantId(tenant.getId());
 
-        restTemplate.postForObject(authServiceUrl + "/authentification/register_tenant", userRequest, String.class);
+        try {
+            restTemplate.postForObject(authServiceUrl + "/authentification/register_tenant", userRequest, String.class);
+        } catch (Exception e) {
+            // Tu peux faire un rollback ici si nécessaire
+            System.err.println("Erreur lors de l'appel à auth-service : " + e.getMessage());
+            throw new RuntimeException("Échec de la création de l'utilisateur admin.");
+        }
 
         // 4. Envoyer le mail à l'admin tenant
         emailService.sendCredentials(request.getAdminEmail(), password);
     }
+
 }

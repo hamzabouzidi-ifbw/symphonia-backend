@@ -2,16 +2,16 @@ package com.example.tenant.Dto;
 
 
 public class CreateTenantRequest {
-    private String Name;
+    private String name;
     private String adminEmail;
 
     // Getters et setters
     public String getName() {
-        return Name;
+        return name;
     }
 
     public void setName(String tenantName) {
-        this.Name = tenantName;
+        this.name = tenantName;
     }
 
     public String getAdminEmail() {

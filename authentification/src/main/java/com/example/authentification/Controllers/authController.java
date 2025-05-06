@@ -56,13 +56,7 @@ public class authController {
         }
     }
 
-    /**  @PostMapping("/login")
-    public String login(@RequestBody authDto loginRequest) {
-    System.out.println("Essai de login avec l'email : " + loginRequest.getEmail());
-    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
-    System.out.println("Authentification réussie pour l'utilisateur : " + loginRequest.getEmail());
-    return jwtService.generateToken(loginRequest.getEmail());
-    }*/
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody authDto loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -98,12 +92,7 @@ public class authController {
         User user = userService.findByEmail(email);
         return user;
     }
-    /*   @PostMapping
-    @RequestMapping(value ="/login")
-    public String login(@RequestParam String email, @RequestParam String password) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-        return jwtService.generateToken(email);
-    }*/
+
     @PostMapping("/register")
     public String register(@RequestBody User user) {
         return userService.registerUser(user.getEmail(), user.getPassword(), user.getRole());
