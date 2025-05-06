@@ -1,11 +1,13 @@
-package com.example.authentification.Dto;
+package com.example.tenant.Dto;
 
-public class authDto {
+
+public class RegisterUserRequest {
     private String email;
     private String password;
     private String role;
     private Long tenantId;
-    // Getters et Setters
+
+    // Getters et setters
     public String getEmail() {
         return email;
     }
@@ -21,6 +23,7 @@ public class authDto {
     public void setPassword(String password) {
         this.password = password;
     }
+
     public String getRole() {
         return role;
     }
@@ -28,6 +31,7 @@ public class authDto {
     public void setRole(String role) {
         this.role = role;
     }
+
     public Long getTenantId() {
         return tenantId;
     }

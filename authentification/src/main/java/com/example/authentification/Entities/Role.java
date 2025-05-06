@@ -2,7 +2,7 @@ package com.example.authentification.Entities;
 
 public enum Role {
     SUPER_ADMIN,
-    TENANT,
+    ADMIN_TENANT,
     USER
 }
 

@@ -2,6 +2,7 @@ package com.example.authentification.Services;
 
 
 import com.example.authentification.Entities.Role;
+import com.example.authentification.Dto.authDto;
 import com.example.authentification.Entities.User;
 import com.example.authentification.Repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,9 +26,23 @@ public class UserService  {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec l'email : " + email));
     }
+    public void registerAdminTenant(authDto request) {
+        // Créer l'utilisateur
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+        // Convertir le String 'role' en Role enum
+        Role role = Role.valueOf(request.getRole().toUpperCase()); // Assure-toi que le rôle est en majuscule
+
+        user.setRole(role);  // Assigner l'énumération Role à l'utilisateur
+        user.setTenantId(request.getTenantId());
+
+        // Sauvegarder dans la base de données
+        userRepository.save(user);
+    }
     @PostConstruct
     public void createSuperAdmin() {
-        String superAdminEmail = "raniabensalem53@gmail.com";
+        String superAdminEmail = "raouia.ben19@gmail.com";
         String defaultPassword = "ifbw_symphonia";
 
         if (!userRepository.existsByEmail(superAdminEmail)) {

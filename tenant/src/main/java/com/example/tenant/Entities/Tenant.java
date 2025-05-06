@@ -19,63 +19,88 @@ import java.util.List;
 @Builder
 public class Tenant {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @Column(nullable = false, unique = true)
-    @Pattern(regexp = "^[a-z0-9_]+$")
     private String code;
+    private String name;              // Nom du tenant
+    private String companyName;       // Nom de l'entreprise ou organisation
+    private String email;             // Email de contact principal
+    private String phone;             // Numéro de téléphone
+    private String address;           // Adresse
 
-    @Column(nullable = false)
-    @Size(min = 2, max = 100)
-    private String name;
-
-    @Email
-    private String email;
-
-    private String phone;
-    private String address;
-
-    @Column(nullable = false)
-    private String contextName;
-
-    private String domainName;
-    @Column(nullable = false, unique = true)
-    @Email
-    private String admin_tenant_email;
-
-    @Column(nullable = false, unique = true)
-    private String admin_tenant_password;
+    private boolean active = true;    // Pour activer/désactiver un tenant
 
 
 
-    // Remplace le champ licenseType String
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TenantLicense> licenses = new ArrayList<>();
+    // Getters & Setters
 
-    @Column(nullable = false)
-    private Integer maxUsers;
+    public Long getId() {
+        return id;
+    }
 
-    private String codecPreference;
-    private Boolean mohEnabled;
-    private Boolean ivrEnabled;
-    private String timeZone;
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
 
 
-    private LocalDateTime createdAt;
-    private LocalDateTime expiresAt;
+    public boolean isActive() {
+        return active;
+    }
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TenantStatus status;
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 
-    @Lob
-    private String dialplanXml;
 
-    // Audit
-    private String createdBy;
-    private LocalDateTime lastModifiedAt;
-    private String lastModifiedBy;
 
 }

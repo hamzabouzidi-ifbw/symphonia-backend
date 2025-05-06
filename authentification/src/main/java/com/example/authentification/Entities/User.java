@@ -20,7 +20,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
-
+    private Long tenantId;
     // Constructeur par défaut
     public User() {
     }
@@ -53,5 +53,14 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+    public Long getTenantId() {
+        return tenantId;
+    }
+
+
+
+    public void setTenantId(Long tenantId) {
+        this.tenantId = tenantId;
     }
 }
