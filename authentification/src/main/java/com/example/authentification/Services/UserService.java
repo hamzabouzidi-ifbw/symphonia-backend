@@ -35,6 +35,8 @@ public class UserService  {
         Role role = Role.valueOf(request.getRole().toUpperCase()); // Assure-toi que le rôle est en majuscule
 
         user.setRole(role);  // Assigner l'énumération Role à l'utilisateur
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
         user.setTenantId(request.getTenantId());
 
         // Sauvegarder dans la base de données
@@ -42,8 +44,8 @@ public class UserService  {
     }
     @PostConstruct
     public void createSuperAdmin() {
-        String superAdminEmail = "raouia.ben19@gmail.com";
-        String defaultPassword = "ifbw_symphonia";
+        String superAdminEmail = "raniabensalem53@gmail.com";
+        String defaultPassword = "rania123";
 
         if (!userRepository.existsByEmail(superAdminEmail)) {
             // Création du Super Admin
