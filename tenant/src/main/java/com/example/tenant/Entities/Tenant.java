@@ -23,13 +23,22 @@ public class Tenant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column(nullable = false, unique = true)
     private String code;
+
     private String name;              // Nom du tenant
+
     private String companyName;       // Nom de l'entreprise ou organisation
+
     private String email;             // Email de contact principal
+
     private String phone;             // Numéro de téléphone
+
     private String address;           // Adresse
+
+
+    private String domain;           // domain
 
     private boolean active = true;    // Pour activer/désactiver un tenant
 
@@ -102,5 +111,12 @@ public class Tenant {
     }
 
 
+    public String getDomain() {
+        return domain;
+    }
+
+    public void setDomain(String domain) {
+        this.domain = domain;
+    }
 
 }

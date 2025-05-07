@@ -33,6 +33,11 @@ public class TenantService {
         // 1. Créer le tenant
         Tenant tenant = new Tenant();
         tenant.setName(request.getName());
+        tenant.setCompanyName(request.getCompanyName());
+        tenant.setAddress(request.getAddress());
+        tenant.setEmail(request.getEmail());
+        tenant.setPhone(request.getPhone());
+        tenant.setDomain(request.getDomain());
         String code = "T-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         tenant.setCode(code);
 
