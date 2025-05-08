@@ -97,6 +97,7 @@ public class authController {
     public String register(@RequestBody User user) {
         return userService.registerUser(user.getEmail(), user.getPassword(), user.getRole());
     }
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/register_tenant")
     public ResponseEntity<String> register(@RequestBody authDto request) {
         userService.registerAdminTenant(request);

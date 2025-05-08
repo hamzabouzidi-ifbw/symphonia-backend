@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,50 +19,56 @@ public class LicenceDefinitionController {
     @Autowired
     private LicenceDefinitionService service;
 
-
-
+    // Ajouter une licence
     @PostMapping("/add")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> addLicense(@RequestBody LicenceDefinition def,
                                         @RequestHeader("role") String role) {
-
         if ("SUPER_ADMIN".equals(role)) {
+            try {
+                // Appel au service pour créer la licence
+                LicenceDefinition createdLicence = service.create(def);
 
-            LicenceDefinition createdLicence = service.create(def);
+                // Création du DTO pour la réponse
+                LicenceDTO response = new LicenceDTO(
+                        createdLicence.getId(),
+                        createdLicence
+                );
 
-            LicenceDTO response = new LicenceDTO(
-
-                    createdLicence.getId(),
-                    createdLicence
-            );
-
-            return ResponseEntity.status(201).body(response);
+                // Retourner la réponse avec la licence créée
+                return ResponseEntity.status(201).body(response);
+            } catch (IllegalArgumentException e) {
+                // Gérer les erreurs de validation
+                return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+            }
         } else {
+            // Si l'utilisateur n'a pas les permissions appropriées
             return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to create a licence."));
         }
     }
 
+    // Récupérer toutes les licences
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<LicenceDefinition> getAll() {
         return service.findAll();
     }
 
+    // Récupérer une licence par ID
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public LicenceDefinition getById(@PathVariable UUID id) {
         return service.findById(id);
     }
 
-
-
-
+    // Mettre à jour une licence
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public LicenceDefinition update(@PathVariable UUID id, @RequestBody LicenceDefinition def) {
         return service.update(id, def);
     }
 
+    // Supprimer une licence
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> delete(@PathVariable UUID id) {

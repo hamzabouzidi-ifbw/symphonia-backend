@@ -41,6 +41,7 @@ public class Tenant {
     private String domain;           // domain
 
     private boolean active = true;    // Pour activer/désactiver un tenant
+    private String adminEmail;
 
 
 
@@ -118,5 +119,11 @@ public class Tenant {
     public void setDomain(String domain) {
         this.domain = domain;
     }
+    public String getAdminEmail() {
+        return adminEmail;
+    }
 
+    public void setAdminEmail(String adminEmail) {
+        this.adminEmail = adminEmail;
+    }
 }
