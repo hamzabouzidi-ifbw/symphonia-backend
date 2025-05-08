@@ -46,6 +46,8 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- lombok -->
+
             <dependency>
                 <groupId>org.freeswitch.esl.client</groupId>
                 <artifactId>org.freeswitch.esl.client</artifactId>

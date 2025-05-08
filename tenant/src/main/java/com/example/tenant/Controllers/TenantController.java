@@ -18,9 +18,11 @@ public class TenantController {
     private TenantService tenantService;
 
     @PostMapping
-    public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,@RequestHeader("role") String role) {
+   // @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,
+                                          @RequestHeader("role") String role) {
 
-        if ("SUPER_ADMIN".equals(role)) {
+       if ("SUPER_ADMIN".equals(role)) {
             try {
                 tenantService.createTenant(request);
                 return ResponseEntity.ok()
@@ -36,7 +38,17 @@ public class TenantController {
             // Si l'utilisateur n'a pas les permissions appropriées
             return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to create a tenant."));
         }
-
+        /*try {
+            tenantService.createTenant(request);
+            return ResponseEntity.ok()
+                    .body(new ApiResponse(true, "Tenant et admin créés avec succès."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ApiResponse(false, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Une erreur interne est survenue."));
+        }*/
     }
 
     // Classe interne pour standardiser les réponses
