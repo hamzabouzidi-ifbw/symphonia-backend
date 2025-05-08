@@ -1,19 +1,25 @@
 package com.example.licenses.Controllers;
 
 import com.example.licenses.Entities.LicenceDefinition;
+import com.example.licenses.Entities.TenantLicense;
 import com.example.licenses.Services.LicenceDefinitionService;
+import com.example.licenses.dto.AssignLicenseRequest;
 import com.example.licenses.dto.LicenceDTO;
+import com.example.licenses.dto.LicenseStatusResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("licenses")
+@RequiredArgsConstructor
 public class LicenceDefinitionController {
 
     @Autowired
@@ -75,4 +81,21 @@ public class LicenceDefinitionController {
         service.delete(id);
         return ResponseEntity.ok().build();
     }
+    @PostMapping("/assign")
+    public ResponseEntity<Void> assign(@RequestBody AssignLicenseRequest request) {
+        service.assignLicense(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/status/{tenantId}")
+    public ResponseEntity<LicenseStatusResponse> getStatus(@PathVariable UUID tenantId) {
+        return ResponseEntity.ok(service.getLicenseStatus(tenantId));
+    }
+
+    @PutMapping("/renew")
+    public ResponseEntity<Void> renew(@RequestParam UUID tenantId, @RequestParam String newEndDate) {
+        service.renewLicense(tenantId, LocalDate.parse(newEndDate));
+        return ResponseEntity.ok().build();
+    }
+
 }

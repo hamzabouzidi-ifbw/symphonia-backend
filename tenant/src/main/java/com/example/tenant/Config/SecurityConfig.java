@@ -19,4 +19,3 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest().permitAll(); // ou .authenticated() selon besoin
     }
 }
-

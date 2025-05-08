@@ -1,7 +1,8 @@
-package com.example.tenant.Entities;
+package com.example.licenses.Entities;
 
 public enum LicenseStatus {
     ACTIVE,
     EXPIRED,
+    PENDING,
     SUSPENDED
 }

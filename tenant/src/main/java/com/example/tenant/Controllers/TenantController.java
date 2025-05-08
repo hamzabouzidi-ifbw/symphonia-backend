@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/tenant")
 public class TenantController {
@@ -15,20 +17,26 @@ public class TenantController {
     @Autowired
     private TenantService tenantService;
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping
-    public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request) {
-        try {
-            tenantService.createTenant(request);
-            return ResponseEntity.ok()
-                    .body(new ApiResponse(true, "Tenant et admin créés avec succès."));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ApiResponse(false, e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponse(false, "Une erreur interne est survenue."));
+    public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,@RequestHeader("role") String role) {
+
+        if ("SUPER_ADMIN".equals(role)) {
+            try {
+                tenantService.createTenant(request);
+                return ResponseEntity.ok()
+                        .body(new ApiResponse(true, "Tenant et admin créés avec succès."));
+            } catch (RuntimeException e) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new ApiResponse(false, e.getMessage()));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new ApiResponse(false, "Une erreur interne est survenue."));
+            }
+        } else {
+            // Si l'utilisateur n'a pas les permissions appropriées
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to create a tenant."));
         }
+
     }
 
     // Classe interne pour standardiser les réponses
