@@ -7,13 +7,11 @@ import com.example.licenses.Repositories.LicenceDefinitionRepository;
 import com.example.licenses.Repositories.LicenseRepository;
 import com.example.licenses.dto.AssignLicenseRequest;
 import com.example.licenses.dto.LicenseStatusResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service// Génère un constructeur avec tous les champs 'final'
@@ -68,7 +66,7 @@ public class LicenceDefinitionService {
     public void assignLicense(AssignLicenseRequest request) {
         TenantLicense license = new TenantLicense();
         license.setTenantId(request.getTenantId());
-        license.setLicenseKey(request.getLicenseKey());
+        license.setLicenseKeys(request.getLicenseKeys());
         license.setStartDate(request.getStartDate());
         license.setEndDate(request.getEndDate());
         license.setMaxUsers(request.getMaxUsers());
@@ -78,14 +76,14 @@ public class LicenceDefinitionService {
     }
 
     // Obtenir le statut de la licence d’un tenant
-    public LicenseStatusResponse getLicenseStatus(UUID tenantId) {
+    public LicenseStatusResponse getLicenseStatus(Long tenantId) {
         return licenseRepo.findByTenantId(tenantId)
                 .map(l -> new LicenseStatusResponse(l.getTenantId(), l.getStatus()))
                 .orElseThrow(() -> new RuntimeException("License not found"));
     }
 
     // Renouveler la licence
-    public void renewLicense(UUID tenantId, LocalDate newEndDate) {
+    public void renewLicense(Long tenantId, LocalDate newEndDate) {
         TenantLicense license = licenseRepo.findByTenantId(tenantId)
                 .orElseThrow(() -> new RuntimeException("License not found"));
         license.setEndDate(newEndDate);

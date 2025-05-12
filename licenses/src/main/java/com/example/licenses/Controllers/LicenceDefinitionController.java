@@ -1,7 +1,6 @@
 package com.example.licenses.Controllers;
 
 import com.example.licenses.Entities.LicenceDefinition;
-import com.example.licenses.Entities.TenantLicense;
 import com.example.licenses.Services.LicenceDefinitionService;
 import com.example.licenses.dto.AssignLicenseRequest;
 import com.example.licenses.dto.LicenceDTO;
@@ -81,6 +80,8 @@ public class LicenceDefinitionController {
         service.delete(id);
         return ResponseEntity.ok().build();
     }
+
+    //affecter licence to tenant
     @PostMapping("/assign")
     public ResponseEntity<Void> assign(@RequestBody AssignLicenseRequest request) {
         service.assignLicense(request);
@@ -88,12 +89,12 @@ public class LicenceDefinitionController {
     }
 
     @GetMapping("/status/{tenantId}")
-    public ResponseEntity<LicenseStatusResponse> getStatus(@PathVariable UUID tenantId) {
+    public ResponseEntity<LicenseStatusResponse> getStatus(@PathVariable Long tenantId) {
         return ResponseEntity.ok(service.getLicenseStatus(tenantId));
     }
 
     @PutMapping("/renew")
-    public ResponseEntity<Void> renew(@RequestParam UUID tenantId, @RequestParam String newEndDate) {
+    public ResponseEntity<Void> renew(@RequestParam Long tenantId, @RequestParam String newEndDate) {
         service.renewLicense(tenantId, LocalDate.parse(newEndDate));
         return ResponseEntity.ok().build();
     }

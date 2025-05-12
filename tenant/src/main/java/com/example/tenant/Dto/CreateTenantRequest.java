@@ -1,6 +1,8 @@
 package com.example.tenant.Dto;
 
 
+import java.util.List;
+
 public class CreateTenantRequest {
     private String name;
     private String email;
@@ -9,10 +11,21 @@ public class CreateTenantRequest {
     private String phone;
     private String domain;
     private String adminEmail;
+    private List<String> licenseKeys; // Liste des clés de licence
 
 
 
     // Getters et setters
+
+
+    public List<String> getLicenseKeys() {
+        return licenseKeys;
+    }
+
+    public void setLicenseKeys(List<String> licenseKeys) {
+        this.licenseKeys = licenseKeys;
+    }
+
     public String getName() {
         return name;
     }

@@ -2,25 +2,23 @@ package com.example.licenses.dto;
 
 import com.example.licenses.Entities.LicenseStatus;
 
-import java.util.UUID;
-
 public class LicenseStatusResponse {
 
-    private UUID tenantId;
+    private Long tenantId;
     private LicenseStatus status;
 
     // ✅ Ajout du constructeur nécessaire
-    public LicenseStatusResponse(UUID tenantId, LicenseStatus status) {
+    public LicenseStatusResponse(Long tenantId, LicenseStatus status) {
         this.tenantId = tenantId;
         this.status = status;
     }
 
     // Getters et setters (ou @Data si tu utilises Lombok)
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(UUID tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
     }
 

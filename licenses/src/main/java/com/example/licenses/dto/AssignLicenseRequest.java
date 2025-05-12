@@ -1,32 +1,41 @@
 package com.example.licenses.dto;
 
-import com.example.licenses.Entities.LicenseStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.UUID;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssignLicenseRequest {
-    private UUID tenantId;
-    private String licenseKey;
+    private Long tenantId;
+    private List<String> licenseKeys; // Liste des clés de licence
     private LocalDate startDate;
     private LocalDate endDate;
     private int maxUsers;
     // ====== Getters ======
 
 
-    public UUID getTenantId() {
+    public List<String> getLicenseKeys() {
+        return licenseKeys;
+    }
+
+    public void setLicenseKeys(List<String> licenseKeys) {
+        this.licenseKeys = licenseKeys;
+    }
+
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public String getLicenseKey() {
-        return licenseKey;
+    public void setTenantId(Long tenantId) {
+        this.tenantId = tenantId;
     }
+
+
 
     public LocalDate getStartDate() {
         return startDate;
@@ -42,13 +51,7 @@ public class AssignLicenseRequest {
 
 
 
-    public void setTenantId(UUID tenantId) {
-        this.tenantId = tenantId;
-    }
 
-    public void setLicenseKey(String licenseKey) {
-        this.licenseKey = licenseKey;
-    }
 
     public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;

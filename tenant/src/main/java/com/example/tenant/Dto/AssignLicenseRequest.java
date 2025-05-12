@@ -1,35 +1,15 @@
-package com.example.licenses.Entities;
+package com.example.tenant.Dto;
 
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-
-import javax.persistence.*;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
-@Entity
-@Table(name = "tenant_licenses")
-@NoArgsConstructor
-@AllArgsConstructor
-public class TenantLicense {
+public class AssignLicenseRequest {
 
-    @Id
-    @GeneratedValue
-    private UUID id;
     private Long tenantId;
-    @ElementCollection
     private List<String> licenseKeys; // Liste des clés de licence
-
     private LocalDate startDate;
     private LocalDate endDate;
-
     private int maxUsers;
-    private int usedUsers;
-
-    @Enumerated(EnumType.STRING)
-    private LicenseStatus status;
-
     // ====== Getters ======
 
 
@@ -40,11 +20,6 @@ public class TenantLicense {
     public void setLicenseKeys(List<String> licenseKeys) {
         this.licenseKeys = licenseKeys;
     }
-
-    public UUID getId() {
-        return id;
-    }
-
 
     public Long getTenantId() {
         return tenantId;
@@ -67,19 +42,8 @@ public class TenantLicense {
         return maxUsers;
     }
 
-    public int getUsedUsers() {
-        return usedUsers;
-    }
 
-    public LicenseStatus getStatus() {
-        return status;
-    }
 
-    // ====== Setters ======
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
 
 
     public void setStartDate(LocalDate startDate) {
@@ -94,11 +58,5 @@ public class TenantLicense {
         this.maxUsers = maxUsers;
     }
 
-    public void setUsedUsers(int usedUsers) {
-        this.usedUsers = usedUsers;
-    }
 
-    public void setStatus(LicenseStatus status) {
-        this.status = status;
-    }
 }

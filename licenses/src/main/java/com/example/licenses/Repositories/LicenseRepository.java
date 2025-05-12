@@ -9,6 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface LicenseRepository extends JpaRepository<TenantLicense, UUID> {
-    Optional<TenantLicense> findByTenantId(UUID tenantId);
+    Optional<TenantLicense> findByTenantId(Long tenantId);
     List<TenantLicense> findByStatus(LicenseStatus status);
 }
