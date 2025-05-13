@@ -93,10 +93,16 @@ public class LicenceDefinitionController {
         return ResponseEntity.ok(service.getLicenseStatus(tenantId));
     }
 
-    @PutMapping("/renew")
+    /*@PutMapping("/renew")
     public ResponseEntity<Void> renew(@RequestParam Long tenantId, @RequestParam String newEndDate) {
         service.renewLicense(tenantId, LocalDate.parse(newEndDate));
         return ResponseEntity.ok().build();
+    }*/
+
+    @GetMapping("/by-tenant/{tenantId}")
+    public ResponseEntity<List<String>> getLicenseKeysByTenant(@PathVariable Long tenantId) {
+        List<String> keys = service.getLicenseKeysByTenantId(tenantId);
+        return ResponseEntity.ok(keys);
     }
 
 }

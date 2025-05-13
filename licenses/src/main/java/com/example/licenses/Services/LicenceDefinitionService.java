@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service// Génère un constructeur avec tous les champs 'final'
 public class LicenceDefinitionService {
@@ -77,19 +79,28 @@ public class LicenceDefinitionService {
 
     // Obtenir le statut de la licence d’un tenant
     public LicenseStatusResponse getLicenseStatus(Long tenantId) {
-        return licenseRepo.findByTenantId(tenantId)
-                .map(l -> new LicenseStatusResponse(l.getTenantId(), l.getStatus()))
-                .orElseThrow(() -> new RuntimeException("License not found"));
+        List<TenantLicense> licenses = licenseRepo.findByTenantId(tenantId);
+        if (licenses.isEmpty()) {
+            throw new RuntimeException("License not found");
+        }
+
+        // Exemple : on prend la dernière par date de fin
+        TenantLicense latest = licenses.stream()
+                .max(Comparator.comparing(TenantLicense::getEndDate))
+                .orElseThrow();
+
+        return new LicenseStatusResponse(latest.getTenantId(), latest.getStatus());
     }
 
+
     // Renouveler la licence
-    public void renewLicense(Long tenantId, LocalDate newEndDate) {
+    /*public void renewLicense(Long tenantId, LocalDate newEndDate) {
         TenantLicense license = licenseRepo.findByTenantId(tenantId)
                 .orElseThrow(() -> new RuntimeException("License not found"));
         license.setEndDate(newEndDate);
         license.setStatus(calculateStatus(license.getStartDate(), newEndDate));
         licenseRepo.save(license);
-    }
+    }*/
 
     // Vérifier et mettre à jour les statuts des licences
     public void checkAndUpdateStatuses() {
@@ -109,4 +120,13 @@ public class LicenceDefinitionService {
         if (now.isAfter(end)) return LicenseStatus.EXPIRED;
         return LicenseStatus.ACTIVE;
     }
+
+
+    public List<String> getLicenseKeysByTenantId(Long tenantId) {
+        List<TenantLicense> licenses = licenseRepo.findByTenantId(tenantId);
+        return licenses.stream()
+                .flatMap(l -> l.getLicenseKeys().stream())
+                .collect(Collectors.toList());
+    }
+
 }

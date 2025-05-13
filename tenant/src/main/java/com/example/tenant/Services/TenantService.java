@@ -3,13 +3,12 @@ package com.example.tenant.Services;
 import com.example.tenant.Dto.AssignLicenseRequest;
 import com.example.tenant.Dto.CreateTenantRequest;
 import com.example.tenant.Dto.RegisterUserRequest;
+import com.example.tenant.Dto.TenantWithLicensesResponse;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Repositories.TenantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -17,6 +16,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -129,8 +129,8 @@ public class TenantService {
 
         } catch (Exception e) {
             // En cas d'échec, supprimer le tenant créé
-            tenantRepository.delete(tenant);
-            throw new RuntimeException("Échec de la création de l'utilisateur admin. Le tenant a été supprimé.");
+           // tenantRepository.delete(tenant);
+            throw new RuntimeException("Échec de la création de l'utilisateur admin.");
         }
 
         // Envoyer le mot de passe à l'email de l'admin
@@ -172,4 +172,81 @@ public class TenantService {
             e.printStackTrace();
         }
     }
+
+    public List<TenantWithLicensesResponse> getAllTenantsWithLicenses() {
+        List<Tenant> tenants = tenantRepository.findAll();
+        List<TenantWithLicensesResponse> result = new ArrayList<>();
+
+        for (Tenant tenant : tenants) {
+            TenantWithLicensesResponse response = new TenantWithLicensesResponse();
+            response.setId(tenant.getId());
+            response.setName(tenant.getName());
+            response.setDomain(tenant.getDomain());
+            response.setEmail(tenant.getEmail());
+            response.setAdminEmail(tenant.getAdminEmail());
+            response.setCode(tenant.getCode());
+            response.setAddress(tenant.getAddress());
+            response.setCompanyName(tenant.getCompanyName());
+            response.setPhone(tenant.getPhone());
+
+            result.add(response);
+        }
+
+        return result;
+    }
+
+    public TenantWithLicensesResponse getTenantById(Long id) {
+        Optional<Tenant> tenantOpt = tenantRepository.findById(id);
+        if (tenantOpt.isEmpty()) {
+            throw new RuntimeException("Tenant non trouvé avec l'ID : " + id);
+        }
+
+        Tenant tenant = tenantOpt.get();
+        TenantWithLicensesResponse response = new TenantWithLicensesResponse();
+        response.setId(tenant.getId());
+        response.setName(tenant.getName());
+        response.setDomain(tenant.getDomain());
+        response.setEmail(tenant.getEmail());
+        response.setAdminEmail(tenant.getAdminEmail());
+        response.setCode(tenant.getCode());
+        response.setAddress(tenant.getAddress());
+        response.setCompanyName(tenant.getCompanyName());
+        response.setPhone(tenant.getPhone());
+
+        try {
+            HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            String token = httpRequest.getHeader("Authorization");
+
+            if (token != null && !token.startsWith("Bearer ")) {
+                token = "Bearer " + token;
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            String url = licenseServiceUrl + "/by-tenant/{tenantId}";
+            ResponseEntity<List> responseEntity = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    List.class,
+                    tenant.getId()
+            );
+            List<String> licenseKeys = responseEntity.getBody();
+        } catch (Exception e) {
+            System.err.println("Erreur lors de la récupération des licences du tenant " + tenant.getId());
+            e.printStackTrace();
+            response.setLicenseKeys(List.of()); // Valeur vide en cas d'erreur
+        }
+
+        return response;
+    }
+
+
+
+
+
 }
