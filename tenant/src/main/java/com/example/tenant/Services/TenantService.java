@@ -5,9 +5,7 @@ import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Repositories.TenantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -17,6 +15,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -138,6 +138,41 @@ public class TenantService {
         }
 
         return savedTenant;
+    }
+
+// affichage des tenants avec leurs licences
+    public List<TenantWithLicencesResponse> getAllTenantsWithLicences(String token) {
+        List<Tenant> tenants = tenantRepository.findAll();
+        List<TenantWithLicencesResponse> result = new ArrayList<>();
+
+        for (Tenant tenant : tenants) {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("Authorization", token);
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+                ResponseEntity<LicenceAssignmentRequest[]> response = restTemplate
+                        .exchange(
+                                licenceServiceUrl + "/by-tenant/" + tenant.getId(),
+                                HttpMethod.GET,
+                                entity,
+                                LicenceAssignmentRequest[].class
+                        );
+
+                TenantWithLicencesResponse item = new TenantWithLicencesResponse();
+                item.setTenant(tenant);
+                item.setLicences(List.of(response.getBody()));
+
+                result.add(item);
+            } catch (Exception e) {
+                // En cas d'erreur, log ou ignorer ce tenant
+                e.printStackTrace();
+            }
+        }
+
+        return result;
     }
 
 }

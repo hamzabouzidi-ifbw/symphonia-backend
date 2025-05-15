@@ -25,28 +25,32 @@ public class LicenceDefinitionController {
 
 
     @PostMapping("/assign-multiple")
-    public ResponseEntity<List<LicenceAssignment>> assignMultiple(@RequestBody MultipleLicenceAssignmentRequest request) {
-        System.out.println("===== Licence assign endpoint called =====");
+    public ResponseEntity<?> assignMultiple(@RequestBody MultipleLicenceAssignmentRequest request,
+                                            @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            System.out.println("===== Licence assign endpoint called =====");
+            System.out.println("TenantId: " + request.getTenantId());
 
-        System.out.println("TenantId: " + request.getTenantId());
-        System.out.println("Licences:");
-        if (request.getLicences() != null) {
-            request.getLicences().forEach(licence -> {
-                System.out.println(" - licenceDefinitionId: " + licence.getLicenceDefinitionId());
-                System.out.println("   tenantId: " + licence.getTenantId());
-                System.out.println("   maxUsers: " + licence.getMaxUsers());
-            });
+            System.out.println("Licences:");
+            if (request.getLicences() != null) {
+                request.getLicences().forEach(licence -> {
+                    System.out.println(" - licenceDefinitionId: " + licence.getLicenceDefinitionId());
+                    System.out.println("   tenantId: " + licence.getTenantId());
+                    System.out.println("   maxUsers: " + licence.getMaxUsers());
+                });
+            } else {
+                System.out.println("No licences provided.");
+            }
+
+            return ResponseEntity.ok(service.assignMultipleLicences(request));
         } else {
-            System.out.println("No licences provided.");
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to assign licences."));
         }
-
-        return ResponseEntity.ok(service.assignMultipleLicences(request));
     }
 
 
     // Ajouter une licence
     @PostMapping("/add")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> addLicense(@RequestBody LicenceDefinition def,
                                         @RequestHeader("role") String role) {
         if ("SUPER_ADMIN".equals(role)) {
@@ -72,33 +76,65 @@ public class LicenceDefinitionController {
         }
     }
 
-    // Récupérer toutes les licences
+
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public List<LicenceDefinition> getAll() {
-        return service.findAll();
+    public ResponseEntity<?> getAll(@RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            return ResponseEntity.ok(service.findAll());
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to display licences."));
+        }
     }
+
 
     // Récupérer une licence par ID
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public LicenceDefinition getById(@PathVariable UUID id) {
-        return service.findById(id);
+    public ResponseEntity<?> getById(@PathVariable UUID id, @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            LicenceDefinition licence = service.findById(id);
+            return ResponseEntity.ok(licence);
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to display license."));
+        }
     }
+
+
 
     // Mettre à jour une licence
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public LicenceDefinition update(@PathVariable UUID id, @RequestBody LicenceDefinition def) {
-        return service.update(id, def);
+    public ResponseEntity<?> update(@PathVariable UUID id,
+                                    @RequestBody LicenceDefinition def,
+                                    @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            LicenceDefinition updated = service.update(id, def);
+            return ResponseEntity.ok(updated);
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to update the license."));
+        }
     }
+
 
     // Supprimer une licence
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<?> delete(@PathVariable UUID id) {
-        service.delete(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> delete(@PathVariable UUID id,
+                                    @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            service.delete(id);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to delete the license."));
+        }
+    }
+
+    @GetMapping("/by-tenant/{tenantId}")
+    public ResponseEntity<?> getLicencesByTenant(@PathVariable Long tenantId,
+                                                 @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            List<LicenceAssignment> licences = service.getLicencesByTenantId(tenantId);
+            return ResponseEntity.ok(licences);
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to access licences."));
+        }
     }
 
 }

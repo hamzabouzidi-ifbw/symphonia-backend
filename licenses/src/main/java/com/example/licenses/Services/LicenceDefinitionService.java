@@ -89,4 +89,8 @@ public class LicenceDefinitionService {
         }
     }
 
+    public List<LicenceAssignment> getLicencesByTenantId(Long tenantId) {
+        return repositoryLicence.findByTenantId(tenantId);
+    }
+
 }

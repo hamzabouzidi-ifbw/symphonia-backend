@@ -13,4 +13,5 @@ public interface LicenceAssignmentRepository extends JpaRepository<LicenceAssign
     List<LicenceAssignment> findByActiveTrue();
 
     List<LicenceAssignment> findByEndDateBeforeAndActiveTrue(java.time.LocalDate date);
+
 }
