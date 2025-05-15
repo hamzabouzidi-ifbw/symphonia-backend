@@ -1,20 +1,21 @@
 package com.example.licenses.Services;
 
 import com.example.licenses.Entities.LicenceDefinition;
-import com.example.licenses.Entities.LicenseStatus;
-import com.example.licenses.Entities.TenantLicense;
+import com.example.licenses.Entities.LicenceType;
+import com.example.licenses.Entities.LicenceAssignment;
+import com.example.licenses.Repositories.LicenceAssignmentRepository;
 import com.example.licenses.Repositories.LicenceDefinitionRepository;
-import com.example.licenses.Repositories.LicenseRepository;
-import com.example.licenses.dto.AssignLicenseRequest;
-import com.example.licenses.dto.LicenseStatusResponse;
+
+import com.example.licenses.dto.LicenceAssignmentRequest;
+import com.example.licenses.dto.MultipleLicenceAssignmentRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service// Génère un constructeur avec tous les champs 'final'
 public class LicenceDefinitionService {
@@ -23,7 +24,7 @@ public class LicenceDefinitionService {
     private LicenceDefinitionRepository repository;
 
     @Autowired
-    private LicenseRepository licenseRepo;
+    private LicenceAssignmentRepository repositoryLicence;
 
     // Récupérer toutes les licences
     public List<LicenceDefinition> findAll() {
@@ -63,70 +64,29 @@ public class LicenceDefinitionService {
     private String generateLicenseKey() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
-
-    // Affecter une licence à un tenant
-    public void assignLicense(AssignLicenseRequest request) {
-        TenantLicense license = new TenantLicense();
-        license.setTenantId(request.getTenantId());
-        license.setLicenseKeys(request.getLicenseKeys());
-        license.setStartDate(request.getStartDate());
-        license.setEndDate(request.getEndDate());
-        license.setMaxUsers(request.getMaxUsers());
-        license.setUsedUsers(0);
-        license.setStatus(calculateStatus(request.getStartDate(), request.getEndDate()));
-        licenseRepo.save(license);
-    }
-
-    // Obtenir le statut de la licence d’un tenant
-    public LicenseStatusResponse getLicenseStatus(Long tenantId) {
-        List<TenantLicense> licenses = licenseRepo.findByTenantId(tenantId);
-        if (licenses.isEmpty()) {
-            throw new RuntimeException("License not found");
+    public List<LicenceAssignment> assignMultipleLicences(MultipleLicenceAssignmentRequest request) {
+        List<LicenceAssignment> savedLicences = new ArrayList<>();
+        for (LicenceAssignmentRequest licenceReq : request.getLicences()) {
+            LicenceAssignment assignment = new LicenceAssignment();
+            assignment.setTenantId(request.getTenantId());
+            assignment.setLicenceDefinitionId(licenceReq.getLicenceDefinitionId());
+            assignment.setMaxUsers(licenceReq.getMaxUsers());
+            assignment.setStartDate(LocalDate.now());
+            assignment.setEndDate(LocalDate.now().plusYears(1));
+            assignment.setActive(true);
+            savedLicences.add(repositoryLicence.save(assignment));
         }
-
-        // Exemple : on prend la dernière par date de fin
-        TenantLicense latest = licenses.stream()
-                .max(Comparator.comparing(TenantLicense::getEndDate))
-                .orElseThrow();
-
-        return new LicenseStatusResponse(latest.getTenantId(), latest.getStatus());
+        return savedLicences;
     }
 
-
-    // Renouveler la licence
-    /*public void renewLicense(Long tenantId, LocalDate newEndDate) {
-        TenantLicense license = licenseRepo.findByTenantId(tenantId)
-                .orElseThrow(() -> new RuntimeException("License not found"));
-        license.setEndDate(newEndDate);
-        license.setStatus(calculateStatus(license.getStartDate(), newEndDate));
-        licenseRepo.save(license);
-    }*/
-
-    // Vérifier et mettre à jour les statuts des licences
-    public void checkAndUpdateStatuses() {
-        for (TenantLicense license : licenseRepo.findAll()) {
-            LicenseStatus newStatus = calculateStatus(license.getStartDate(), license.getEndDate());
-            if (license.getStatus() != newStatus) {
-                license.setStatus(newStatus);
-                licenseRepo.save(license);
+    public void checkExpiredLicences() {
+        List<LicenceAssignment> licences = repositoryLicence.findAll();
+        for (LicenceAssignment licence : licences) {
+            if (licence.getEndDate().isBefore(LocalDate.now()) && licence.isActive()) {
+                licence.setActive(false);
+                repositoryLicence.save(licence);
             }
         }
-    }
-
-    // Calcul du statut actuel
-    private LicenseStatus calculateStatus(LocalDate start, LocalDate end) {
-        LocalDate now = LocalDate.now();
-        if (now.isBefore(start)) return LicenseStatus.PENDING;
-        if (now.isAfter(end)) return LicenseStatus.EXPIRED;
-        return LicenseStatus.ACTIVE;
-    }
-
-
-    public List<String> getLicenseKeysByTenantId(Long tenantId) {
-        List<TenantLicense> licenses = licenseRepo.findByTenantId(tenantId);
-        return licenses.stream()
-                .flatMap(l -> l.getLicenseKeys().stream())
-                .collect(Collectors.toList());
     }
 
 }

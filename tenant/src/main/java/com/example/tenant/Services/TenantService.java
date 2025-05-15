@@ -1,28 +1,24 @@
 package com.example.tenant.Services;
 
-import com.example.tenant.Dto.AssignLicenseRequest;
-import com.example.tenant.Dto.CreateTenantRequest;
-import com.example.tenant.Dto.RegisterUserRequest;
-import com.example.tenant.Dto.TenantWithLicensesResponse;
+import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Repositories.TenantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class TenantService {
@@ -36,16 +32,17 @@ public class TenantService {
     @Autowired
     private EmailService emailService;
 
+    @Value("${licence.service.url}")
+    private String licenceServiceUrl;
+
     @Value("${auth.service.url}")
     private String authServiceUrl;
-
-    @Value("${license.service.url}")
-    private String licenseServiceUrl;
 
     private String generateTenantCode(String name) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] hash = md.digest(name.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
+            // Prendre les 3 premiers octets pour un code court et unique
             StringBuilder code = new StringBuilder("T-");
             for (int i = 0; i < 3; i++) {
                 code.append(String.format("%02X", hash[i]));
@@ -56,32 +53,18 @@ public class TenantService {
         }
     }
 
-    public void createTenant(CreateTenantRequest request) {
-        // Vérifier si le tenant existe déjà par nom
-        Optional<Tenant> existingTenantByName = tenantRepository.findByName(request.getName());
-        if (existingTenantByName.isPresent()) {
+    public Tenant createTenant(CreateTenantRequest request) {
+        // 1. Vérifications uniques
+        if (tenantRepository.findByName(request.getName()).isPresent())
             throw new RuntimeException("Un tenant avec ce nom existe déjà.");
-        }
-
-        // Vérifier si le domaine existe déjà
-        Optional<Tenant> existingTenantByDomain = tenantRepository.findByDomain(request.getDomain());
-        if (existingTenantByDomain.isPresent()) {
+        if (tenantRepository.findByDomain(request.getDomain()).isPresent())
             throw new RuntimeException("Un tenant avec ce domaine existe déjà.");
-        }
-
-        // Vérifier si l'email existe déjà
-        Optional<Tenant> existingTenantByEmail = tenantRepository.findByEmail(request.getEmail());
-        if (existingTenantByEmail.isPresent()) {
+        if (tenantRepository.findByEmail(request.getEmail()).isPresent())
             throw new RuntimeException("Un tenant avec cet email existe déjà.");
-        }
-
-        // Vérifier si l'email admin est déjà utilisé par un autre tenant
-        Optional<Tenant> existingTenantByAdminEmail = tenantRepository.findByAdminEmail(request.getAdminEmail());
-        if (existingTenantByAdminEmail.isPresent()) {
+        if (tenantRepository.findByAdminEmail(request.getAdminEmail()).isPresent())
             throw new RuntimeException("Cet email admin est déjà utilisé par un autre tenant.");
-        }
 
-        // Créer le tenant
+        // 2. Création du tenant
         Tenant tenant = new Tenant();
         tenant.setName(request.getName());
         tenant.setCompanyName(request.getCompanyName());
@@ -90,163 +73,71 @@ public class TenantService {
         tenant.setPhone(request.getPhone());
         tenant.setDomain(request.getDomain());
         tenant.setAdminEmail(request.getAdminEmail());
+        tenant.setCode(generateTenantCode(request.getName()));
 
-        String code = generateTenantCode(request.getName());
-        tenant.setCode(code);
+        Tenant savedTenant = tenantRepository.save(tenant);
 
-        tenantRepository.save(tenant);
-
-        // Générer mot de passe
-        String password = UUID.randomUUID().toString().substring(0, 10);
-
-        // Créer la requête pour l'authentification
-        RegisterUserRequest userRequest = new RegisterUserRequest();
-        userRequest.setEmail(request.getAdminEmail());
-        userRequest.setPassword(password);
-        userRequest.setRole("ADMIN_TENANT");
-        userRequest.setTenantId(tenant.getId());
-
+        // 3. Appel au microservice de licences
         try {
-            // Récupérer le token d'autorisation de la requête en cours
+            MultipleLicenceAssignmentRequest licenceRequest = new MultipleLicenceAssignmentRequest();
+            licenceRequest.setTenantId(savedTenant.getId());
+            for (LicenceAssignmentRequest licence : request.getLicences()) {
+                licence.setTenantId(savedTenant.getId());
+            }
+
+            licenceRequest.setLicences(request.getLicences());
+
             HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
             String token = httpRequest.getHeader("Authorization");
 
-            // Vérifier que le token commence par "Bearer " et ajouter le préfixe si nécessaire
-            if (token != null && !token.startsWith("Bearer ")) {
-                token = "Bearer " + token;
-            }
-
-            // Créer les headers pour la requête d'authentification
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", token);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Créer l'entité pour la requête d'authentification
+            HttpEntity<MultipleLicenceAssignmentRequest> entity = new HttpEntity<>(licenceRequest, headers);
+
+            restTemplate.postForEntity(
+                    licenceServiceUrl + "/assign-multiple",
+                    entity,
+                    Void.class
+            );
+        } catch (Exception e) {
+            // En cas d'erreur, rollback du tenant
+            tenantRepository.delete(savedTenant);
+            throw new RuntimeException("Échec de l'assignation des licences. Le tenant a été supprimé.", e);
+        }
+
+        // 4. Génération du mot de passe admin et enregistrement dans auth-service
+        try {
+            String password = UUID.randomUUID().toString().substring(0, 10);
+
+            RegisterUserRequest userRequest = new RegisterUserRequest();
+            userRequest.setEmail(request.getAdminEmail());
+            userRequest.setPassword(password);
+            userRequest.setRole("ADMIN_TENANT");
+            userRequest.setTenantId(savedTenant.getId());
+
+            HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            String token = httpRequest.getHeader("Authorization");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
             HttpEntity<RegisterUserRequest> entity = new HttpEntity<>(userRequest, headers);
 
-            // Envoyer la requête à l'auth service pour créer l'utilisateur admin
             restTemplate.postForObject(authServiceUrl + "/authentification/register_tenant", entity, String.class);
 
-        } catch (Exception e) {
-            // En cas d'échec, supprimer le tenant créé
-           // tenantRepository.delete(tenant);
-            throw new RuntimeException("Échec de la création de l'utilisateur admin.");
-        }
-
-        // Envoyer le mot de passe à l'email de l'admin
-        emailService.sendCredentials(request.getAdminEmail(), password);
-
-        try {
-            // Créer la requête pour affecter des licences
-            AssignLicenseRequest licenseRequest = new AssignLicenseRequest();
-            licenseRequest.setTenantId(tenant.getId());
-            licenseRequest.setLicenseKeys(request.getLicenseKeys());  // Utiliser les clés de licence envoyées dans la requête
-            licenseRequest.setStartDate(LocalDate.now());
-            licenseRequest.setEndDate(LocalDate.now().plusYears(1)); // 1 an de licence
-            licenseRequest.setMaxUsers(100); // Nombre maximal d'utilisateurs par défaut
-
-
-            // Récupérer le token d'autorisation de la requête en cours
-            HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-            String token = httpRequest.getHeader("Authorization");
-
-            // Vérifier que le token commence par "Bearer " et ajouter le préfixe si nécessaire
-            if (token != null && !token.startsWith("Bearer ")) {
-                token = "Bearer " + token;
-            }
-            // Créer les headers pour la requête de licences
-
-            HttpHeaders licenseHeaders = new HttpHeaders();
-            licenseHeaders.set("Authorization", token);
-            licenseHeaders.setContentType(MediaType.APPLICATION_JSON);
-
-            // Créer l'entité pour la requête d'affectation de licence
-            HttpEntity<AssignLicenseRequest> licenseEntity = new HttpEntity<>(licenseRequest, licenseHeaders);
-
-            // Envoyer la requête à l'API de licences pour affecter les licences
-            restTemplate.postForObject(licenseServiceUrl + "/assign", licenseEntity, String.class);
+            // Envoi des credentials
+            emailService.sendCredentials(request.getAdminEmail(), password);
 
         } catch (Exception e) {
-            // Loger l'erreur, mais ne pas interrompre la création du tenant
-            System.err.println("Échec de l'affectation de licence : " + e.getMessage());
-            e.printStackTrace();
+            tenantRepository.delete(savedTenant);
+            // (Optionnel) : rollback licences ici via un appel delete à licence-service
+            throw new RuntimeException("Échec de la création de l'utilisateur admin. Le tenant a été supprimé.", e);
         }
+
+        return savedTenant;
     }
-
-    public List<TenantWithLicensesResponse> getAllTenantsWithLicenses() {
-        List<Tenant> tenants = tenantRepository.findAll();
-        List<TenantWithLicensesResponse> result = new ArrayList<>();
-
-        for (Tenant tenant : tenants) {
-            TenantWithLicensesResponse response = new TenantWithLicensesResponse();
-            response.setId(tenant.getId());
-            response.setName(tenant.getName());
-            response.setDomain(tenant.getDomain());
-            response.setEmail(tenant.getEmail());
-            response.setAdminEmail(tenant.getAdminEmail());
-            response.setCode(tenant.getCode());
-            response.setAddress(tenant.getAddress());
-            response.setCompanyName(tenant.getCompanyName());
-            response.setPhone(tenant.getPhone());
-
-            result.add(response);
-        }
-
-        return result;
-    }
-
-    public TenantWithLicensesResponse getTenantById(Long id) {
-        Optional<Tenant> tenantOpt = tenantRepository.findById(id);
-        if (tenantOpt.isEmpty()) {
-            throw new RuntimeException("Tenant non trouvé avec l'ID : " + id);
-        }
-
-        Tenant tenant = tenantOpt.get();
-        TenantWithLicensesResponse response = new TenantWithLicensesResponse();
-        response.setId(tenant.getId());
-        response.setName(tenant.getName());
-        response.setDomain(tenant.getDomain());
-        response.setEmail(tenant.getEmail());
-        response.setAdminEmail(tenant.getAdminEmail());
-        response.setCode(tenant.getCode());
-        response.setAddress(tenant.getAddress());
-        response.setCompanyName(tenant.getCompanyName());
-        response.setPhone(tenant.getPhone());
-
-        try {
-            HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-            String token = httpRequest.getHeader("Authorization");
-
-            if (token != null && !token.startsWith("Bearer ")) {
-                token = "Bearer " + token;
-            }
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", token);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-            String url = licenseServiceUrl + "/by-tenant/{tenantId}";
-            ResponseEntity<List> responseEntity = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    List.class,
-                    tenant.getId()
-            );
-            List<String> licenseKeys = responseEntity.getBody();
-        } catch (Exception e) {
-            System.err.println("Erreur lors de la récupération des licences du tenant " + tenant.getId());
-            e.printStackTrace();
-            response.setLicenseKeys(List.of()); // Valeur vide en cas d'erreur
-        }
-
-        return response;
-    }
-
-
-
-
 
 }

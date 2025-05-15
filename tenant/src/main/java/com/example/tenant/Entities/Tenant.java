@@ -12,11 +12,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "tenants")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Tenant {
 
 

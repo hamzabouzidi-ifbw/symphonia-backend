@@ -1,32 +1,52 @@
 package com.example.licenses.Controllers;
 
 import com.example.licenses.Entities.LicenceDefinition;
+import com.example.licenses.Entities.LicenceType;
+import com.example.licenses.Entities.LicenceAssignment;
 import com.example.licenses.Services.LicenceDefinitionService;
-import com.example.licenses.dto.AssignLicenseRequest;
-import com.example.licenses.dto.LicenceDTO;
-import com.example.licenses.dto.LicenseStatusResponse;
-import lombok.RequiredArgsConstructor;
+
+import com.example.licenses.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("licenses")
-@RequiredArgsConstructor
 public class LicenceDefinitionController {
 
     @Autowired
     private LicenceDefinitionService service;
 
+
+
+    @PostMapping("/assign-multiple")
+    public ResponseEntity<List<LicenceAssignment>> assignMultiple(@RequestBody MultipleLicenceAssignmentRequest request) {
+        System.out.println("===== Licence assign endpoint called =====");
+
+        System.out.println("TenantId: " + request.getTenantId());
+        System.out.println("Licences:");
+        if (request.getLicences() != null) {
+            request.getLicences().forEach(licence -> {
+                System.out.println(" - licenceDefinitionId: " + licence.getLicenceDefinitionId());
+                System.out.println("   tenantId: " + licence.getTenantId());
+                System.out.println("   maxUsers: " + licence.getMaxUsers());
+            });
+        } else {
+            System.out.println("No licences provided.");
+        }
+
+        return ResponseEntity.ok(service.assignMultipleLicences(request));
+    }
+
+
     // Ajouter une licence
     @PostMapping("/add")
-   // @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> addLicense(@RequestBody LicenceDefinition def,
                                         @RequestHeader("role") String role) {
         if ("SUPER_ADMIN".equals(role)) {
@@ -79,30 +99,6 @@ public class LicenceDefinitionController {
     public ResponseEntity<?> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.ok().build();
-    }
-
-    //affecter licence to tenant
-    @PostMapping("/assign")
-    public ResponseEntity<Void> assign(@RequestBody AssignLicenseRequest request) {
-        service.assignLicense(request);
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/status/{tenantId}")
-    public ResponseEntity<LicenseStatusResponse> getStatus(@PathVariable Long tenantId) {
-        return ResponseEntity.ok(service.getLicenseStatus(tenantId));
-    }
-
-    /*@PutMapping("/renew")
-    public ResponseEntity<Void> renew(@RequestParam Long tenantId, @RequestParam String newEndDate) {
-        service.renewLicense(tenantId, LocalDate.parse(newEndDate));
-        return ResponseEntity.ok().build();
-    }*/
-
-    @GetMapping("/by-tenant/{tenantId}")
-    public ResponseEntity<List<String>> getLicenseKeysByTenant(@PathVariable Long tenantId) {
-        List<String> keys = service.getLicenseKeysByTenantId(tenantId);
-        return ResponseEntity.ok(keys);
     }
 
 }

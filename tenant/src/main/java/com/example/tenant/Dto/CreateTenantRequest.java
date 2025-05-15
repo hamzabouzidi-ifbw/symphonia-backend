@@ -11,21 +11,17 @@ public class CreateTenantRequest {
     private String phone;
     private String domain;
     private String adminEmail;
-    private List<String> licenseKeys; // Liste des clés de licence
+    private List<LicenceAssignmentRequest> licences;
 
+    public List<LicenceAssignmentRequest> getLicences() {
+        return licences;
+    }
 
+    public void setLicences(List<LicenceAssignmentRequest> licences) {
+        this.licences = licences;
+    }
 
     // Getters et setters
-
-
-    public List<String> getLicenseKeys() {
-        return licenseKeys;
-    }
-
-    public void setLicenseKeys(List<String> licenseKeys) {
-        this.licenseKeys = licenseKeys;
-    }
-
     public String getName() {
         return name;
     }

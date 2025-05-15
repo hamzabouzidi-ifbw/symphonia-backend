@@ -1,5 +1,7 @@
 package com.example.licenses.Config;
 
+
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -19,4 +21,3 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest().permitAll(); // ou .authenticated() selon besoin
     }
 }
-

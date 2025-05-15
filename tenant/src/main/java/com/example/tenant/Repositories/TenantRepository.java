@@ -13,6 +13,7 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
     Optional<Tenant> findByEmail(String email);
     Optional<Tenant> findByAdminEmail(String adminEmail);
     boolean existsByCode(String code);
+    Optional<Tenant> findByCode(String code);
     // Suppose que tu as un champ `adminEmail` dans Tenant
 
 }
