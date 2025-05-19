@@ -12,11 +12,19 @@ public class LicenceAssignment {
     private UUID licenceDefinitionId;
     private Long tenantId;
     private int maxUsers;
-
+    private int usedUsers;
     private LocalDate startDate;
     private LocalDate endDate;
 
     private boolean active;
+
+    public int getUsedUsers() {
+        return usedUsers;
+    }
+
+    public void setUsedUsers(int usedUsers) {
+        this.usedUsers = usedUsers;
+    }
 
     public UUID getId() {
         return id;

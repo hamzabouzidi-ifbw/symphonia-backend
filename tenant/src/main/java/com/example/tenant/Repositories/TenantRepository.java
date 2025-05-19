@@ -15,5 +15,7 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
     boolean existsByCode(String code);
     Optional<Tenant> findByCode(String code);
     // Suppose que tu as un champ `adminEmail` dans Tenant
-
+    Optional<Tenant> findByNameAndIdNot(String name, Long id);
+    Optional<Tenant> findByDomainAndIdNot(String domain, Long id);
+    Optional<Tenant> findByEmailAndIdNot(String email, Long id);
 }

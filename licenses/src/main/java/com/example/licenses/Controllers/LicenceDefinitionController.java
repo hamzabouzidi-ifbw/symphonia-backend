@@ -136,5 +136,28 @@ public class LicenceDefinitionController {
             return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to access licences."));
         }
     }
-
+    @DeleteMapping("/by-tenant/{tenantId}")
+    public ResponseEntity<?> deleteLicencesByTenant(@PathVariable Long tenantId,
+                                                    @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            service.deleteLicencesByTenantId(tenantId);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to delete licences."));
+        }
+    }
+    @PutMapping("/assignments/update")
+    public ResponseEntity<?> updateLicenceAssignments(@RequestBody UpdateLicenceAssignmentsRequest request,
+                                                      @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            try {
+                List<LicenceAssignment> updatedLicences = service.updateLicenceAssignments(request);
+                return ResponseEntity.ok(updatedLicences);
+            } catch (RuntimeException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to update licence assignments."));
+        }
+    }
 }

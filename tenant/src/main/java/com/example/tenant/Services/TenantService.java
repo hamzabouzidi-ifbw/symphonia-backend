@@ -140,7 +140,7 @@ public class TenantService {
         return savedTenant;
     }
 
-// affichage des tenants avec leurs licences
+    // affichage des tenants avec leurs licences
     public List<TenantWithLicencesResponse> getAllTenantsWithLicences(String token) {
         List<Tenant> tenants = tenantRepository.findAll();
         List<TenantWithLicencesResponse> result = new ArrayList<>();
@@ -174,5 +174,83 @@ public class TenantService {
 
         return result;
     }
+    public Tenant updateTenant(Long tenantId, UpdateTenantRequest request) {
+        // 1. Récupérer le tenant existant
+        Optional<Tenant> optionalTenant = tenantRepository.findById(tenantId);
+        if (optionalTenant.isEmpty()) {
+            throw new RuntimeException("Tenant non trouvé avec l'ID: " + tenantId);
+        }
 
+        Tenant existingTenant = optionalTenant.get();
+
+        // 2. Vérifier les champs uniques (sauf pour le tenant actuel)
+        if (tenantRepository.findByNameAndIdNot(request.getName(), tenantId).isPresent()) {
+            throw new RuntimeException("Un autre tenant avec ce nom existe déjà.");
+        }
+
+        if (tenantRepository.findByDomainAndIdNot(request.getDomain(), tenantId).isPresent()) {
+            throw new RuntimeException("Un autre tenant avec ce domaine existe déjà.");
+        }
+
+        if (tenantRepository.findByEmailAndIdNot(request.getEmail(), tenantId).isPresent()) {
+            throw new RuntimeException("Un autre tenant avec cet email existe déjà.");
+        }
+
+        // 3. Mettre à jour les champs modifiables
+        existingTenant.setName(request.getName());
+        existingTenant.setCompanyName(request.getCompanyName());
+        existingTenant.setAddress(request.getAddress());
+        existingTenant.setEmail(request.getEmail());
+        existingTenant.setPhone(request.getPhone());
+        existingTenant.setDomain(request.getDomain());
+
+        // Note: On ne met pas à jour le code (généré automatiquement) ni l'email admin (lié à l'authentification)
+
+        // 4. Sauvegarder les modifications
+        return tenantRepository.save(existingTenant);
+    }
+    public void deleteTenant(Long tenantId, String token) {
+        // 1. Récupérer le tenant
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new RuntimeException("Tenant non trouvé avec l'ID: " + tenantId));
+
+        // 2. Supprimer les licences associées via le service de licences
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            restTemplate.exchange(
+                    licenceServiceUrl + "/by-tenant/" + tenantId,
+                    HttpMethod.DELETE,
+                    entity,
+                    Void.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Échec de la suppression des licences du tenant", e);
+        }
+
+        // 3. Supprimer l'utilisateur admin via le service d'authentification
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            restTemplate.exchange(
+                    authServiceUrl + "/users/by-tenant/" + tenantId,
+                    HttpMethod.DELETE,
+                    entity,
+                    Void.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Échec de la suppression de l'utilisateur admin du tenant", e);
+        }
+
+        // 4. Finalement supprimer le tenant
+        tenantRepository.delete(tenant);
+    }
 }

@@ -4,6 +4,7 @@ import com.example.licenses.Entities.LicenceAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface LicenceAssignmentRepository extends JpaRepository<LicenceAssignment, UUID> {
@@ -13,5 +14,5 @@ public interface LicenceAssignmentRepository extends JpaRepository<LicenceAssign
     List<LicenceAssignment> findByActiveTrue();
 
     List<LicenceAssignment> findByEndDateBeforeAndActiveTrue(java.time.LocalDate date);
-
+    Optional<LicenceAssignment> findByTenantIdAndLicenceDefinitionId(Long tenantId, UUID licenceDefinitionId);
 }

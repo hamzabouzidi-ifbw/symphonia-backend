@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import javax.annotation.PostConstruct;
+import java.util.List;
 
 @Service
 public class UserService  {
@@ -101,5 +102,8 @@ public class UserService  {
         }
     }
 
-
+    public void deleteUsersByTenantId(Long tenantId) {
+        List<User> users = userRepository.findByTenantId(tenantId);
+        userRepository.deleteAll(users);
+    }
 }

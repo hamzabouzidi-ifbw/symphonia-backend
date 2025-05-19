@@ -103,4 +103,14 @@ public class authController {
         userService.registerAdminTenant(request);
         return ResponseEntity.ok("Utilisateur enregistré avec succès.");
     }
+    @DeleteMapping("/users/by-tenant/{tenantId}")
+    public ResponseEntity<?> deleteUsersByTenant(@PathVariable Long tenantId,
+                                                 @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            userService.deleteUsersByTenantId(tenantId);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to delete users."));
+        }
+    }
 }
