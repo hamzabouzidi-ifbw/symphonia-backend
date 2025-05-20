@@ -138,13 +138,15 @@ public class LicenceDefinitionController {
     }
     @DeleteMapping("/by-tenant/{tenantId}")
     public ResponseEntity<?> deleteLicencesByTenant(@PathVariable Long tenantId,
-                                                    @RequestHeader("role") String role) {
-        if ("SUPER_ADMIN".equals(role)) {
-            service.deleteLicencesByTenantId(tenantId);
+                                                    @RequestHeader("Authorization") String token) {
+
+        try {
+            service.deleteByTenantId(tenantId);
             return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to delete licences."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+
     }
     @PutMapping("/assignments/update")
     public ResponseEntity<?> updateLicenceAssignments(@RequestBody UpdateLicenceAssignmentsRequest request,

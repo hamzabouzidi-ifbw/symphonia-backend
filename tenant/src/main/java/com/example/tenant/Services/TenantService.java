@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -130,6 +132,7 @@ public class TenantService {
 
             // Envoi des credentials
             emailService.sendCredentials(request.getAdminEmail(), password);
+            System.out.print(request);
 
         } catch (Exception e) {
             tenantRepository.delete(savedTenant);
@@ -210,47 +213,49 @@ public class TenantService {
         return tenantRepository.save(existingTenant);
     }
     public void deleteTenant(Long tenantId, String token) {
-        // 1. Récupérer le tenant
         Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant non trouvé avec l'ID: " + tenantId));
 
-        // 2. Supprimer les licences associées via le service de licences
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", token);
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders authHeaders = new HttpHeaders();
+            authHeaders.set("Authorization", token);
+            // Add the role header
 
-            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<Void> authResponse = restTemplate.exchange(
+                    authServiceUrl + "/authentification/users/by-tenant/" + tenantId,
+                    HttpMethod.DELETE,
+                    new HttpEntity<>(authHeaders),
+                    Void.class
+            );
 
-            restTemplate.exchange(
+            if (!authResponse.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Échec de la suppression des utilisateurs - Code: " + authResponse.getStatusCode());
+            }
+
+            // 2. Suppression des licences
+            HttpHeaders licenceHeaders = new HttpHeaders();
+            licenceHeaders.set("Authorization", token);
+
+            ResponseEntity<Void> licenceResponse = restTemplate.exchange(
                     licenceServiceUrl + "/by-tenant/" + tenantId,
                     HttpMethod.DELETE,
-                    entity,
+                    new HttpEntity<>(licenceHeaders),
                     Void.class
             );
+
+            if (!licenceResponse.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Échec de la suppression des licences - Code: " + licenceResponse.getStatusCode());
+            }
+
+            // 3. Finalement supprimer le tenant
+            tenantRepository.delete(tenant);
+
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException("Erreur client: " + e.getResponseBodyAsString());
+        } catch (HttpServerErrorException e) {
+            throw new RuntimeException("Erreur serveur: " + e.getResponseBodyAsString());
         } catch (Exception e) {
-            throw new RuntimeException("Échec de la suppression des licences du tenant", e);
+            throw new RuntimeException("Erreur inattendue: " + e.getMessage());
         }
-
-        // 3. Supprimer l'utilisateur admin via le service d'authentification
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", token);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-            restTemplate.exchange(
-                    authServiceUrl + "/users/by-tenant/" + tenantId,
-                    HttpMethod.DELETE,
-                    entity,
-                    Void.class
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Échec de la suppression de l'utilisateur admin du tenant", e);
-        }
-
-        // 4. Finalement supprimer le tenant
-        tenantRepository.delete(tenant);
     }
 }

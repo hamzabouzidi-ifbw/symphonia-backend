@@ -6,6 +6,7 @@ import com.example.authentification.Entities.User;
 import com.example.authentification.Repositories.UserRepository;
 import com.example.authentification.Services.JwtService;
 import com.example.authentification.Services.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -104,13 +105,15 @@ public class authController {
         return ResponseEntity.ok("Utilisateur enregistré avec succès.");
     }
     @DeleteMapping("/users/by-tenant/{tenantId}")
-    public ResponseEntity<?> deleteUsersByTenant(@PathVariable Long tenantId,
-                                                 @RequestHeader("role") String role) {
-        if ("SUPER_ADMIN".equals(role)) {
+
+    public ResponseEntity<?> deleteTenant(@PathVariable Long tenantId,
+                                          @RequestHeader("Authorization") String token) {
+        try {
             userService.deleteUsersByTenantId(tenantId);
             return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to delete users."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 }

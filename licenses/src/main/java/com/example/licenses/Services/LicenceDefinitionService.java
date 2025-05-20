@@ -95,42 +95,64 @@ public class LicenceDefinitionService {
     public List<LicenceAssignment> getLicencesByTenantId(Long tenantId) {
         return repositoryLicence.findByTenantId(tenantId);
     }
-    public void deleteLicencesByTenantId(Long tenantId) {
+
+
+
+    public void deleteByTenantId(Long tenantId) {
         List<LicenceAssignment> licences = repositoryLicence.findByTenantId(tenantId);
+        if (licences.isEmpty()) {
+            throw new RuntimeException("Aucune licence trouvée pour ce tenant");
+        }
         repositoryLicence.deleteAll(licences);
     }
+
     public List<LicenceAssignment> updateLicenceAssignments(UpdateLicenceAssignmentsRequest request) {
         List<LicenceAssignment> updatedLicences = new ArrayList<>();
 
         for (UpdateLicenceAssignmentRequest updateRequest : request.getLicences()) {
-            // Trouver l'affectation existante pour ce tenant et cette licence
-            LicenceAssignment assignment = repositoryLicence.findByTenantIdAndLicenceDefinitionId(
+            // Essayer de trouver l'affectation existante
+            Optional<LicenceAssignment> existingAssignment = repositoryLicence.findByTenantIdAndLicenceDefinitionId(
                     request.getTenantId(),
                     updateRequest.getLicenceDefinitionId()
-            ).orElseThrow(() -> new RuntimeException(
-                    "Affectation non trouvée pour tenantId: " + request.getTenantId() +
-                            " et licenceDefinitionId: " + updateRequest.getLicenceDefinitionId()
-            ));
+            );
 
-            // Mettre à jour les champs si présents dans la requête
-            if (updateRequest.getMaxUsers() != null) {
-                assignment.setMaxUsers(updateRequest.getMaxUsers());
+            LicenceAssignment assignment;
+
+            if (existingAssignment.isPresent()) {
+                // Affectation existante - mise à jour
+                assignment = existingAssignment.get();
+
+                // Mettre à jour les champs si présents dans la requête
+                if (updateRequest.getMaxUsers() != null) {
+                    assignment.setMaxUsers(updateRequest.getMaxUsers());
+                }
+
+                if (Boolean.TRUE.equals(updateRequest.getRenew())) {
+                    // Renouvellement: prolonger d'un an à partir de maintenant
+                    assignment.setEndDate(LocalDate.now().plusYears(1));
+                }
+
+                // Réactiver la licence si elle était expirée
+                assignment.setActive(true);
+            } else {
+                // Nouvelle affectation
+                assignment = new LicenceAssignment();
+                assignment.setTenantId(request.getTenantId());
+                assignment.setLicenceDefinitionId(updateRequest.getLicenceDefinitionId());
+                assignment.setMaxUsers(updateRequest.getMaxUsers() != null ?
+                        updateRequest.getMaxUsers() : 0); // Valeur par défaut si null
+                assignment.setUsedUsers(0);
+                assignment.setStartDate(LocalDate.now());
+                assignment.setEndDate(Boolean.TRUE.equals(updateRequest.getRenew()) ?
+                        LocalDate.now().plusYears(1) : LocalDate.now().plusYears(1)); // Par défaut 1 an
+                assignment.setActive(true);
             }
-
-            if (Boolean.TRUE.equals(updateRequest.getRenew())) {
-                // Renouvellement: prolonger d'un an à partir de maintenant
-                assignment.setEndDate(LocalDate.now().plusYears(1));
-            }
-
-            // Réactiver la licence si elle était expirée
-            assignment.setActive(true);
 
             updatedLicences.add(repositoryLicence.save(assignment));
         }
 
         return updatedLicences;
     }
-
     public Optional<LicenceAssignment> findByTenantIdAndLicenceDefinitionId(Long tenantId, UUID licenceDefinitionId) {
         return repositoryLicence.findByTenantIdAndLicenceDefinitionId(tenantId, licenceDefinitionId);
     }

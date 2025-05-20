@@ -39,7 +39,7 @@ public class UserService  {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         user.setTenantId(request.getTenantId());
-
+        System.out.print(request.getTenantId());
         // Sauvegarder dans la base de données
         userRepository.save(user);
     }
@@ -103,7 +103,12 @@ public class UserService  {
     }
 
     public void deleteUsersByTenantId(Long tenantId) {
-        List<User> users = userRepository.findByTenantId(tenantId);
-        userRepository.deleteAll(users);
+        try {
+            User users = userRepository.findByTenantId(tenantId);
+
+            userRepository.delete(users);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la suppression des utilisateurs du tenant: " + e.getMessage());
+        }
     }
 }

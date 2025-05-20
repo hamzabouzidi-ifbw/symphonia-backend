@@ -4,6 +4,7 @@ package com.example.tenant.Dto;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -11,6 +12,43 @@ public class LicenceAssignmentRequest {
     private UUID licenceDefinitionId;
     private Long tenantId;
     private int maxUsers;
+    private int usedUsers;
+    private LocalDate startDate;
+    private LocalDate endDate;
+
+    private boolean active;
+
+    public int getUsedUsers() {
+        return usedUsers;
+    }
+
+    public void setUsedUsers(int usedUsers) {
+        this.usedUsers = usedUsers;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 
     public UUID getLicenceDefinitionId() {
         return licenceDefinitionId;
