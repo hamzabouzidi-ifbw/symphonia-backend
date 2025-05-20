@@ -27,6 +27,7 @@ public class UserService  {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec l'email : " + email));
     }
+
     public void registerAdminTenant(authDto request) {
         // Créer l'utilisateur
         User user = new User();
@@ -43,6 +44,7 @@ public class UserService  {
         // Sauvegarder dans la base de données
         userRepository.save(user);
     }
+
     @PostConstruct
     public void createSuperAdmin() {
         String superAdminEmail = "raniabensalem53@gmail.com";
@@ -67,6 +69,7 @@ public class UserService  {
             System.out.println("ℹ️ Super Admin existe déjà.");
         }
     }
+
     public User updateUserDetails(String currentEmail, String newEmail, String newPassword) {
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));

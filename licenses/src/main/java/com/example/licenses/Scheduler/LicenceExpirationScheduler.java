@@ -1,4 +1,4 @@
-package com.example.licenses.Schedulers;
+package com.example.licenses.Scheduler;
 
 import com.example.licenses.Services.LicenceDefinitionService;
 import com.example.licenses.Services.LicenceDefinitionService;
@@ -12,8 +12,8 @@ public class LicenceExpirationScheduler {
     private LicenceDefinitionService licenceService;
 
 
-    @Scheduled(cron = "0 0 1 * * *") // Tous les jours à 01:00
+   /* @Scheduled(cron = "0 0 1 * * *") // Tous les jours à 01:00
     public void checkLicencesExpiration() {
         licenceService.checkExpiredLicences();
-    }
+    }*/
 }

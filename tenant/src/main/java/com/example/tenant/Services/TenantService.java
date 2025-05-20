@@ -177,6 +177,8 @@ public class TenantService {
 
         return result;
     }
+
+
     public Tenant updateTenant(Long tenantId, UpdateTenantRequest request) {
         // 1. Récupérer le tenant existant
         Optional<Tenant> optionalTenant = tenantRepository.findById(tenantId);
@@ -212,6 +214,8 @@ public class TenantService {
         // 4. Sauvegarder les modifications
         return tenantRepository.save(existingTenant);
     }
+
+
     public void deleteTenant(Long tenantId, String token) {
         Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant non trouvé avec l'ID: " + tenantId));

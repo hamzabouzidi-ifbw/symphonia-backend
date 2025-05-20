@@ -66,6 +66,7 @@ public class LicenceDefinitionService {
     private String generateLicenseKey() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
+
     public List<LicenceAssignment> assignMultipleLicences(MultipleLicenceAssignmentRequest request) {
         List<LicenceAssignment> savedLicences = new ArrayList<>();
         for (LicenceAssignmentRequest licenceReq : request.getLicences()) {
@@ -75,14 +76,14 @@ public class LicenceDefinitionService {
             assignment.setMaxUsers(licenceReq.getMaxUsers());
             assignment.setUsedUsers(0);
             assignment.setStartDate(LocalDate.now());
-            assignment.setEndDate(LocalDate.now().plusYears(1));
+           // assignment.setEndDate(LocalDate.now().plusYears(1));
             assignment.setActive(true);
             savedLicences.add(repositoryLicence.save(assignment));
         }
         return savedLicences;
     }
 
-    public void checkExpiredLicences() {
+    /*public void checkExpiredLicences() {
         List<LicenceAssignment> licences = repositoryLicence.findAll();
         for (LicenceAssignment licence : licences) {
             if (licence.getEndDate().isBefore(LocalDate.now()) && licence.isActive()) {
@@ -90,7 +91,7 @@ public class LicenceDefinitionService {
                 repositoryLicence.save(licence);
             }
         }
-    }
+    }*/
 
     public List<LicenceAssignment> getLicencesByTenantId(Long tenantId) {
         return repositoryLicence.findByTenantId(tenantId);
@@ -127,10 +128,10 @@ public class LicenceDefinitionService {
                     assignment.setMaxUsers(updateRequest.getMaxUsers());
                 }
 
-                if (Boolean.TRUE.equals(updateRequest.getRenew())) {
+                /*if (Boolean.TRUE.equals(updateRequest.getRenew())) {
                     // Renouvellement: prolonger d'un an à partir de maintenant
                     assignment.setEndDate(LocalDate.now().plusYears(1));
-                }
+                }*/
 
                 // Réactiver la licence si elle était expirée
                 assignment.setActive(true);
@@ -143,8 +144,8 @@ public class LicenceDefinitionService {
                         updateRequest.getMaxUsers() : 0); // Valeur par défaut si null
                 assignment.setUsedUsers(0);
                 assignment.setStartDate(LocalDate.now());
-                assignment.setEndDate(Boolean.TRUE.equals(updateRequest.getRenew()) ?
-                        LocalDate.now().plusYears(1) : LocalDate.now().plusYears(1)); // Par défaut 1 an
+                /*assignment.setEndDate(Boolean.TRUE.equals(updateRequest.getRenew()) ?
+                        LocalDate.now().plusYears(1) : LocalDate.now().plusYears(1));*/ // Par défaut 1 an
                 assignment.setActive(true);
             }
 
