@@ -162,4 +162,15 @@ public class LicenceDefinitionController {
             return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to update licence assignments."));
         }
     }
+
+    @PutMapping("/update-assignment/{tenantId}")
+    public ResponseEntity<LicenceAssignment> updateSingleAssignment(
+            @PathVariable Long tenantId,
+            @RequestBody UpdateLicenceAssignmentRequest request
+    ) {
+        LicenceAssignment updated = service.updateSingleLicenceAssignment(tenantId, request);
+        return ResponseEntity.ok(updated);
+    }
+
+
 }

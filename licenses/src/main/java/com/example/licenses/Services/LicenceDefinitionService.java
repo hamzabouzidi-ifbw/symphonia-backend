@@ -154,6 +154,34 @@ public class LicenceDefinitionService {
 
         return updatedLicences;
     }
+    public LicenceAssignment updateSingleLicenceAssignment(Long tenantId, UpdateLicenceAssignmentRequest updateRequest) {
+        Optional<LicenceAssignment> existingAssignment = repositoryLicence.findByTenantIdAndLicenceDefinitionId(
+                tenantId,
+                updateRequest.getLicenceDefinitionId()
+        );
+
+        LicenceAssignment assignment;
+
+        if (existingAssignment.isPresent()) {
+            assignment = existingAssignment.get();
+
+            // Mise à jour des champs selon la requête
+            if (updateRequest.getMaxUsers() != null) {
+                assignment.setMaxUsers(updateRequest.getMaxUsers());
+            }
+
+            // Exemple si tu veux réactiver la licence
+            assignment.setActive(true);
+
+        } else {
+            // Si non trouvé, tu peux lever une exception ou créer une nouvelle affectation
+            throw new RuntimeException("Licence non trouvée pour ce tenant");
+        }
+
+        return repositoryLicence.save(assignment);
+    }
+
+
     public Optional<LicenceAssignment> findByTenantIdAndLicenceDefinitionId(Long tenantId, UUID licenceDefinitionId) {
         return repositoryLicence.findByTenantIdAndLicenceDefinitionId(tenantId, licenceDefinitionId);
     }
