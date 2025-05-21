@@ -22,10 +22,9 @@ public class Tenant {
     @Column(nullable = false, unique = true)
     private String code;
 
-    private String name;              // Nom du tenant
 
-    private String companyName;       // Nom de l'entreprise ou organisation
-
+    private String tenantName;       // Nom de l'entreprise ou organisation
+    private String contextName;
     private String email;             // Email de contact principal
 
     private String phone;             // Numéro de téléphone
@@ -33,7 +32,7 @@ public class Tenant {
     private String address;           // Adresse
 
 
-    private String domain;           // domain
+    private String domainName;           // domain
 
     private boolean active = true;    // Pour activer/désactiver un tenant
     private String adminEmail;
@@ -50,21 +49,7 @@ public class Tenant {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
-    }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCompanyName() {
-        return companyName;
-    }
-
-    public void setCompanyName(String companyName) {
-        this.companyName = companyName;
-    }
 
     public String getEmail() {
         return email;
@@ -107,18 +92,36 @@ public class Tenant {
     }
 
 
-    public String getDomain() {
-        return domain;
-    }
 
-    public void setDomain(String domain) {
-        this.domain = domain;
-    }
     public String getAdminEmail() {
         return adminEmail;
     }
 
     public void setAdminEmail(String adminEmail) {
         this.adminEmail = adminEmail;
+    }
+
+    public String getTenantName() {
+        return tenantName;
+    }
+
+    public void setTenantName(String tenantName) {
+        this.tenantName = tenantName;
+    }
+
+    public String getContextName() {
+        return contextName;
+    }
+
+    public void setContextName(String contextName) {
+        this.contextName = contextName;
+    }
+
+    public String getDomainName() {
+        return domainName;
+    }
+
+    public void setDomainName(String domainName) {
+        this.domainName = domainName;
     }
 }

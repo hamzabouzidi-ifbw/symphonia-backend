@@ -8,14 +8,16 @@ import java.util.Optional;
 
 @Repository
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
-    Optional<Tenant> findByName(String name);
-    Optional<Tenant> findByDomain(String domain);
+
+    Optional<Tenant> findByTenantName(String tenantName);
+    Optional<Tenant> findByDomainName(String domainName);
     Optional<Tenant> findByEmail(String email);
     Optional<Tenant> findByAdminEmail(String adminEmail);
-    boolean existsByCode(String code);
     Optional<Tenant> findByCode(String code);
-    // Suppose que tu as un champ `adminEmail` dans Tenant
-    Optional<Tenant> findByNameAndIdNot(String name, Long id);
-    Optional<Tenant> findByDomainAndIdNot(String domain, Long id);
+
+    boolean existsByCode(String code);
+
+    Optional<Tenant> findByTenantNameAndIdNot(String tenantName, Long id);
+    Optional<Tenant> findByDomainNameAndIdNot(String domainName, Long id);
     Optional<Tenant> findByEmailAndIdNot(String email, Long id);
 }

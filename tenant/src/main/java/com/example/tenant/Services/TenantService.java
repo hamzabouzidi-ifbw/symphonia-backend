@@ -17,10 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class TenantService {
@@ -55,30 +52,38 @@ public class TenantService {
         }
     }
 
+
     public Tenant createTenant(CreateTenantRequest request) {
-        // 1. Vérifications uniques
-        if (tenantRepository.findByName(request.getName()).isPresent())
+
+
+        System.out.print( request.getTenantName());
+        // 1. Vérifications de l'unicité
+        if (tenantRepository.findByTenantName( request.getTenantName()).isPresent())
             throw new RuntimeException("Un tenant avec ce nom existe déjà.");
-        if (tenantRepository.findByDomain(request.getDomain()).isPresent())
-            throw new RuntimeException("Un tenant avec ce domaine existe déjà.");
         if (tenantRepository.findByEmail(request.getEmail()).isPresent())
             throw new RuntimeException("Un tenant avec cet email existe déjà.");
         if (tenantRepository.findByAdminEmail(request.getAdminEmail()).isPresent())
             throw new RuntimeException("Cet email admin est déjà utilisé par un autre tenant.");
 
-        // 2. Création du tenant
+        // 2. Génération automatique des champs
+        String domainName =  request.getTenantName() + "@symphonia.com";
+        String contextName =  request.getTenantName() + "_context";
+        String code =  request.getTenantName() + "-" + String.format("%03d", new Random().nextInt(1000));
+
+        // 3. Création de l'entité Tenant
         Tenant tenant = new Tenant();
-        tenant.setName(request.getName());
-        tenant.setCompanyName(request.getCompanyName());
+        tenant.setTenantName(request.getTenantName());
         tenant.setAddress(request.getAddress());
         tenant.setEmail(request.getEmail());
         tenant.setPhone(request.getPhone());
-        tenant.setDomain(request.getDomain());
+        tenant.setDomainName(domainName);
+        tenant.setContextName(contextName);
         tenant.setAdminEmail(request.getAdminEmail());
-        tenant.setCode(generateTenantCode(request.getName()));
+        tenant.setCode(code);
+
 
         Tenant savedTenant = tenantRepository.save(tenant);
-
+        System.out.print(savedTenant.getTenantName());
         // 3. Appel au microservice de licences
         try {
             MultipleLicenceAssignmentRequest licenceRequest = new MultipleLicenceAssignmentRequest();
@@ -143,6 +148,7 @@ public class TenantService {
         return savedTenant;
     }
 
+
     // affichage des tenants avec leurs licences
     public List<TenantWithLicencesResponse> getAllTenantsWithLicences(String token) {
         List<Tenant> tenants = tenantRepository.findAll();
@@ -187,11 +193,11 @@ public class TenantService {
         Tenant existingTenant = optionalTenant.get();
 
         // 2. Vérifier les champs uniques (sauf pour le tenant actuel)
-        if (tenantRepository.findByNameAndIdNot(request.getName(), tenantId).isPresent()) {
+        if (tenantRepository.findByTenantNameAndIdNot(request.getTenantName(), tenantId).isPresent()) {
             throw new RuntimeException("Un autre tenant avec ce nom existe déjà.");
         }
 
-        if (tenantRepository.findByDomainAndIdNot(request.getDomain(), tenantId).isPresent()) {
+        if (tenantRepository.findByDomainNameAndIdNot(request.getDomainName(), tenantId).isPresent()) {
             throw new RuntimeException("Un autre tenant avec ce domaine existe déjà.");
         }
 
@@ -200,12 +206,13 @@ public class TenantService {
         }
 
         // 3. Mettre à jour les champs modifiables
-        existingTenant.setName(request.getName());
-        existingTenant.setCompanyName(request.getCompanyName());
+        existingTenant.setTenantName(request.getTenantName());
+        existingTenant.setCode(request.getCode());
+        existingTenant.setContextName(request.getContextName());
         existingTenant.setAddress(request.getAddress());
         existingTenant.setEmail(request.getEmail());
         existingTenant.setPhone(request.getPhone());
-        existingTenant.setDomain(request.getDomain());
+        existingTenant.setDomainName(request.getDomainName());
 
         // Note: On ne met pas à jour le code (généré automatiquement) ni l'email admin (lié à l'authentification)
 

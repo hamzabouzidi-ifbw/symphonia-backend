@@ -131,7 +131,9 @@ public class LicenceDefinitionController {
                                                  @RequestHeader("role") String role) {
         if ("SUPER_ADMIN".equals(role)) {
             List<LicenceAssignment> licences = service.getLicencesByTenantId(tenantId);
+
             return ResponseEntity.ok(licences);
+
         } else {
             return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to access licences."));
         }
@@ -147,20 +149,6 @@ public class LicenceDefinitionController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
 
-    }
-    @PutMapping("/assignments/update")
-    public ResponseEntity<?> updateLicenceAssignments(@RequestBody UpdateLicenceAssignmentsRequest request,
-                                                      @RequestHeader("role") String role) {
-        if ("SUPER_ADMIN".equals(role)) {
-            try {
-                List<LicenceAssignment> updatedLicences = service.updateLicenceAssignments(request);
-                return ResponseEntity.ok(updatedLicences);
-            } catch (RuntimeException e) {
-                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-            }
-        } else {
-            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to update licence assignments."));
-        }
     }
 
     @PutMapping("/update-assignment/{tenantId}")
@@ -180,7 +168,5 @@ public class LicenceDefinitionController {
             return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to update licence assignments."));
         }
     }
-
-
 
 }

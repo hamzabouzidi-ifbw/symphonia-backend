@@ -11,8 +11,8 @@ public interface LicenceAssignmentRepository extends JpaRepository<LicenceAssign
 
     List<LicenceAssignment> findByTenantId(Long tenantId);
 
-    List<LicenceAssignment> findByActiveTrue();
 
-    List<LicenceAssignment> findByEndDateBeforeAndActiveTrue(java.time.LocalDate date);
+
+
     Optional<LicenceAssignment> findByTenantIdAndLicenceDefinitionId(Long tenantId, UUID licenceDefinitionId);
 }
