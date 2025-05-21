@@ -164,13 +164,23 @@ public class LicenceDefinitionController {
     }
 
     @PutMapping("/update-assignment/{tenantId}")
-    public ResponseEntity<LicenceAssignment> updateSingleAssignment(
+    public ResponseEntity<?> updateSingleAssignment(
             @PathVariable Long tenantId,
-            @RequestBody UpdateLicenceAssignmentRequest request
+            @RequestBody UpdateLicenceAssignmentRequest request,
+            @RequestHeader("role") String role
     ) {
-        LicenceAssignment updated = service.updateSingleLicenceAssignment(tenantId, request);
-        return ResponseEntity.ok(updated);
+        if ("SUPER_ADMIN".equals(role)) {
+            try {
+                LicenceAssignment updated = service.updateSingleLicenceAssignment(tenantId, request);
+                return ResponseEntity.ok(updated);
+            } catch (RuntimeException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to update licence assignments."));
+        }
     }
+
 
 
 }
