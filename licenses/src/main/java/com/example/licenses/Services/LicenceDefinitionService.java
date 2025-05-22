@@ -124,4 +124,34 @@ public class LicenceDefinitionService {
     public Optional<LicenceAssignment> findByTenantIdAndLicenceDefinitionId(Long tenantId, UUID licenceDefinitionId) {
         return repositoryLicence.findByTenantIdAndLicenceDefinitionId(tenantId, licenceDefinitionId);
     }
+    public LicenceAssignment assignSingleLicence(LicenceAssignmentRequest request) {
+        // Vérifier si le tenant a déjà ce type de licence
+        Optional<LicenceAssignment> existingAssignment = repositoryLicence.findByTenantIdAndLicenceDefinitionId(
+                request.getTenantId(),
+                request.getLicenceDefinitionId()
+        );
+
+        if (existingAssignment.isPresent()) {
+            throw new IllegalArgumentException("Ce tenant a déjà une licence de ce type");
+        }
+
+        // Créer une nouvelle affectation de licence
+        LicenceAssignment assignment = new LicenceAssignment();
+        assignment.setTenantId(request.getTenantId());
+        assignment.setLicenceDefinitionId(request.getLicenceDefinitionId());
+        assignment.setMaxUsers(request.getMaxUsers());
+        assignment.setUsedUsers(0); // Initialiser à 0
+        // Date d'affectation actuelle
+
+        return repositoryLicence.save(assignment);
+    }
+    public void deleteSingleLicenceAssignment(Long tenantId, UUID licenceDefinitionId) {
+        Optional<LicenceAssignment> assignment = repositoryLicence.findByTenantIdAndLicenceDefinitionId(tenantId, licenceDefinitionId);
+
+        if (assignment.isEmpty()) {
+            throw new RuntimeException("Affectation de licence non trouvée pour ce tenant");
+        }
+
+        repositoryLicence.delete(assignment.get());
+    }
 }

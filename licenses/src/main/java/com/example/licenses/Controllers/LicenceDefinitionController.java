@@ -22,8 +22,29 @@ public class LicenceDefinitionController {
     @Autowired
     private LicenceDefinitionService service;
 
+    // Assigner une seule licence à un tenant
+    @PostMapping("/assign-seule")
+    public ResponseEntity<LicenceAssignment> assignSingleLicence(@RequestBody LicenceAssignmentRequest request) {
+        LicenceAssignment assignment = service.assignSingleLicence(request);
+        return ResponseEntity.ok(assignment);
+    }
 
-
+    @DeleteMapping("/by-tenant/{tenantId}/licence/{licenceDefinitionId}")
+    public ResponseEntity<?> deleteSingleLicenceAssignment(
+            @PathVariable Long tenantId,
+            @PathVariable UUID licenceDefinitionId,
+            @RequestHeader("role") String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            try {
+                service.deleteSingleLicenceAssignment(tenantId, licenceDefinitionId);
+                return ResponseEntity.ok().build();
+            } catch (RuntimeException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to delete licence assignments."));
+        }
+    }
     @PostMapping("/assign-multiple")
     public ResponseEntity<?> assignMultiple(@RequestBody MultipleLicenceAssignmentRequest request,
                                             @RequestHeader("role") String role) {
