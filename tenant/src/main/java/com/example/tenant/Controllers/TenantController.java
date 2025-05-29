@@ -1,11 +1,9 @@
 package com.example.tenant.Controllers;
 
 import com.example.tenant.Dto.*;
-import com.example.tenant.Entities.LicenceType;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Services.TenantService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

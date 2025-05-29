@@ -21,8 +21,8 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/unknown/lombok-unknown.jar" />
         </processorPath>
         <module name="authentification" />
-        <module name="tenant" />
         <module name="licenses" />
+        <module name="tenant" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
