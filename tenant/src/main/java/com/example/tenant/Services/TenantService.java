@@ -17,6 +17,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
+
+import java.nio.file.*;
+import java.io.*;
 @Service
 public class TenantService {
 
@@ -78,6 +81,11 @@ public class TenantService {
         tenant.setCode(code);
 
         Tenant savedTenant = tenantRepository.save(tenant);
+
+        // dialplan for tenant
+        generateDialplanForTenant(savedTenant);
+        generateDirectoryForTenant(savedTenant);
+        reloadFreeSwitchXml();
 
         // Get authorization token from request
         HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
@@ -190,4 +198,67 @@ public class TenantService {
             throw new RuntimeException("Erreur lors de la suppression du tenant: " + e.getMessage());
         }
     }
+
+
+    // dialplan for tenant
+    private void generateDialplanForTenant(Tenant tenant) {
+        String contextName = tenant.getContextName();
+
+        String contextXml = """
+        <include>
+            <context name="%s">
+                <extension name="default">
+                    <condition field="destination_number" expression="^(\\d+)$">
+                        <action application="answer"/>
+                        <action application="playback" data="ivr/ivr-welcome_to_freeswitch.wav"/>
+                        <action application="hangup"/>
+                    </condition>
+                </extension>
+            </context>
+        </include>
+        """.formatted(contextName);
+
+        Path contextPath = Paths.get("/etc/freeswitch/dialplan/" + contextName + ".xml");
+        try {
+            Files.writeString(contextPath, contextXml);
+            System.out.println("✅ Dialplan écrit dans : " + contextPath);
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de l'écriture du dialplan", e);
+        }
+    }
+
+    private void generateDirectoryForTenant(Tenant tenant) {
+        String domainName = tenant.getDomainName();
+        String contextName = tenant.getContextName();
+
+        String directoryXml = """
+        <domain name="%s">
+            <params>
+                <param name="dial-string" value="{context=%s}${sofia_contact(${dialed_user}@${dialed_domain})}"/>
+            </params>
+            <users>
+                <X-PRE-PROCESS cmd="include" data="default.xml"/>
+            </users>
+        </domain>
+        """.formatted(domainName, contextName);
+
+        Path directoryPath = Paths.get("/etc/freeswitch/directory/" + domainName + ".xml");
+        try {
+            Files.writeString(directoryPath, directoryXml);
+            System.out.println("✅ Directory écrit dans : " + directoryPath);
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de l'écriture du fichier directory", e);
+        }
+    }
+
+    private void reloadFreeSwitchXml() {
+        try {
+            Process process = Runtime.getRuntime().exec("fs_cli -x reloadxml");
+            process.waitFor();
+            System.out.println("🔄 FreeSWITCH rechargé (reloadxml)");
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors du reloadxml de FreeSWITCH", e);
+        }
+    }
+
 }
