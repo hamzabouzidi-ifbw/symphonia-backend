@@ -12,6 +12,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -55,7 +57,7 @@ public class TenantService {
         }
     }
 
-    public Tenant createTenant(CreateTenantRequest request) {
+   /* public Tenant createTenant(CreateTenantRequest request) {
         // 1. Vérifications de l'unicité
         if (tenantRepository.findByTenantName(request.getTenantName()).isPresent())
             throw new RuntimeException("Un tenant avec ce nom existe déjà.");
@@ -81,11 +83,6 @@ public class TenantService {
         tenant.setCode(code);
 
         Tenant savedTenant = tenantRepository.save(tenant);
-
-        // dialplan for tenant
-        generateDialplanForTenant(savedTenant);
-        generateDirectoryForTenant(savedTenant);
-        reloadFreeSwitchXml();
 
         // Get authorization token from request
         HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
@@ -126,7 +123,98 @@ public class TenantService {
         }
 
         return savedTenant;
+    }*/
+
+
+    public Tenant createTenant(CreateTenantRequest request) {
+        if (tenantRepository.findByTenantName(request.getTenantName()).isPresent())
+            throw new RuntimeException("Un tenant avec ce nom existe déjà.");
+        if (tenantRepository.findByEmail(request.getEmail()).isPresent())
+            throw new RuntimeException("Un tenant avec cet email existe déjà.");
+        if (tenantRepository.findByAdminEmail(request.getAdminEmail()).isPresent())
+            throw new RuntimeException("Cet email admin est déjà utilisé par un autre tenant.");
+
+        String domainName = request.getTenantName() + "@symphonia.com";
+        String contextName = request.getTenantName() + "_context";
+        String code = request.getTenantName() + "-" + String.format("%03d", new Random().nextInt(1000));
+
+        Tenant tenant = new Tenant();
+        tenant.setTenantName(request.getTenantName());
+        tenant.setAddress(request.getAddress());
+        tenant.setEmail(request.getEmail());
+        tenant.setPhone(request.getPhone());
+        tenant.setDomainName(domainName);
+        tenant.setContextName(contextName);
+        tenant.setAdminEmail(request.getAdminEmail());
+        tenant.setCode(code);
+
+        Tenant savedTenant = tenantRepository.save(tenant);
+
+        HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String token = httpRequest.getHeader("Authorization");
+
+        try {
+            MultipleLicenceAssignmentRequest licenceRequest = new MultipleLicenceAssignmentRequest();
+            licenceRequest.setTenantId(savedTenant.getId());
+            for (LicenceAssignmentRequest licence : request.getLicences()) {
+                licence.setTenantId(savedTenant.getId());
+            }
+            licenceRequest.setLicences(request.getLicences());
+
+            licenceServiceClient.assignMultipleLicences(token, licenceRequest);
+        } catch (Exception e) {
+            tenantRepository.delete(savedTenant);
+            throw new RuntimeException("Échec de l'assignation des licences. Le tenant a été supprimé.", e);
+        }
+
+        try {
+            String password = UUID.randomUUID().toString().substring(0, 10);
+
+            RegisterUserRequest userRequest = new RegisterUserRequest();
+            userRequest.setEmail(request.getAdminEmail());
+            userRequest.setPassword(password);
+            userRequest.setRole("ADMIN_TENANT");
+            userRequest.setTenantId(savedTenant.getId());
+
+            authServiceClient.registerTenantUser(token, userRequest);
+            emailService.sendCredentials(request.getAdminEmail(), password);
+        } catch (Exception e) {
+            tenantRepository.delete(savedTenant);
+            throw new RuntimeException("Échec de la création de l'utilisateur admin. Le tenant a été supprimé.", e);
+        }
+
+        // 👉 Appel à FreeSWITCH via HTTP (si tu veux déclencher un cache/update)
+
+        /*Ce bloc de code Java effectue un appel HTTP vers un endpoint local (http://localhost:8083/...)
+         afin de notifier FreeSWITCH (un serveur de téléphonie open source)
+         pour déclencher une mise à jour ou une régénération du XML
+                (probablement un fichier de configuration ou d'annuaire).*/
+        try {
+
+
+            // Appelle ton propre endpoint pour déclencher la génération XML
+            URL url = new URL("http://localhost:8083/tenant/freeswitch/directory?domain=" + domainName);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/xml");
+
+            // Ajouter le token d’authentification dans l’en-tête Authorization
+            if (token != null && !token.isEmpty()) {
+                conn.setRequestProperty("Authorization", token);
+            }
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                System.out.println("Erreur lors de la notification FreeSWITCH: " + responseCode);
+            }
+            conn.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return savedTenant;
     }
+
 
     public List<TenantWithLicencesResponse> getAllTenantsWithLicences(String token) {
         List<Tenant> tenants = tenantRepository.findAll();
@@ -177,7 +265,19 @@ public class TenantService {
         existingTenant.setPhone(request.getPhone());
         existingTenant.setDomainName(request.getDomainName());
 
-        return tenantRepository.save(existingTenant);
+        Tenant updatedTenant = tenantRepository.save(existingTenant);
+
+        // 🟡 Récupération du token pour l'appel
+        HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String token = httpRequest.getHeader("Authorization");
+
+        // ✅ Appel pour notifier FreeSWITCH
+        notifyFreeSWITCHDirectoryUpdate(updatedTenant.getDomainName(), token);
+
+        return updatedTenant;
+
+
+
     }
 
     public void deleteTenant(Long tenantId, String token) {
@@ -194,70 +294,37 @@ public class TenantService {
             // 3. Finalement supprimer le tenant
             tenantRepository.delete(tenant);
 
+            // ✅ Appel pour notifier FreeSWITCH après suppression
+            notifyFreeSWITCHDirectoryUpdate(tenant.getDomainName(), token);
+
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la suppression du tenant: " + e.getMessage());
         }
     }
 
-
-    // dialplan for tenant
-    private void generateDialplanForTenant(Tenant tenant) {
-        String contextName = tenant.getContextName();
-
-        String contextXml = """
-        <include>
-            <context name="%s">
-                <extension name="default">
-                    <condition field="destination_number" expression="^(\\d+)$">
-                        <action application="answer"/>
-                        <action application="playback" data="ivr/ivr-welcome_to_freeswitch.wav"/>
-                        <action application="hangup"/>
-                    </condition>
-                </extension>
-            </context>
-        </include>
-        """.formatted(contextName);
-
-        Path contextPath = Paths.get("/etc/freeswitch/dialplan/" + contextName + ".xml");
-        try {
-            Files.writeString(contextPath, contextXml);
-            System.out.println("✅ Dialplan écrit dans : " + contextPath);
-        } catch (IOException e) {
-            throw new RuntimeException("Erreur lors de l'écriture du dialplan", e);
-        }
+    public Optional<Tenant> getByDomain(String domain) {
+        return tenantRepository.findByDomainName(domain);
     }
 
-    private void generateDirectoryForTenant(Tenant tenant) {
-        String domainName = tenant.getDomainName();
-        String contextName = tenant.getContextName();
-
-        String directoryXml = """
-        <domain name="%s">
-            <params>
-                <param name="dial-string" value="{context=%s}${sofia_contact(${dialed_user}@${dialed_domain})}"/>
-            </params>
-            <users>
-                <X-PRE-PROCESS cmd="include" data="default.xml"/>
-            </users>
-        </domain>
-        """.formatted(domainName, contextName);
-
-        Path directoryPath = Paths.get("/etc/freeswitch/directory/" + domainName + ".xml");
+    private void notifyFreeSWITCHDirectoryUpdate(String domainName, String token) {
         try {
-            Files.writeString(directoryPath, directoryXml);
-            System.out.println("✅ Directory écrit dans : " + directoryPath);
+            URL url = new URL("http://localhost:8083/tenant/freeswitch/directory?domain=" + domainName);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/xml");
+
+            if (token != null && !token.isEmpty()) {
+                conn.setRequestProperty("Authorization", token);
+            }
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                System.out.println("Erreur lors de la notification FreeSWITCH: " + responseCode);
+            }
+
+            conn.disconnect();
         } catch (IOException e) {
-            throw new RuntimeException("Erreur lors de l'écriture du fichier directory", e);
-        }
-    }
-
-    private void reloadFreeSwitchXml() {
-        try {
-            Process process = Runtime.getRuntime().exec("fs_cli -x reloadxml");
-            process.waitFor();
-            System.out.println("🔄 FreeSWITCH rechargé (reloadxml)");
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors du reloadxml de FreeSWITCH", e);
+            e.printStackTrace();
         }
     }
 

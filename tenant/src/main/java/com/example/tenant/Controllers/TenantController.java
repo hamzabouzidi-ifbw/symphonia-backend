@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/tenant")
@@ -71,4 +72,116 @@ public class TenantController {
             return ResponseEntity.status(403).body(Map.of("error", "Vous n'avez pas la permission de supprimer ce tenant."));
         }
     }
+
+    @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
+    public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
+        String domain = params.get("domain");
+
+        // Récupère le tenant par son nom de domaine
+        Optional<Tenant> tenantOpt = tenantService.getByDomain(domain);
+        if (tenantOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Tenant tenant = tenantOpt.get();
+
+        // Construction du XML avec les infos du tenant
+        String xml = """
+        <document type="freeswitch/xml">
+          <section name="directory">
+            <domain name="%s">
+              <user id="%s">
+                <params>
+                  <param name="password" value="1234"/>
+                </params>
+                <variables>
+                  <variable name="accountcode" value="%s"/>
+                  <variable name="context" value="%s"/>
+                  <variable name="email" value="%s"/>
+                  <variable name="phone" value="%s"/>
+                  <variable name="admin_email" value="%s"/>
+                  <variable name="address" value="%s"/>
+                </variables>
+              </user>
+            </domain>
+          </section>
+        </document>
+        """.formatted(
+                tenant.getDomainName(),     // %s -> domaine
+                tenant.getCode(),           // %s -> id (on prend code ici)
+                tenant.getCode(),           // accountcode
+                tenant.getContextName(),    // context
+                tenant.getEmail(),          // email
+                tenant.getPhone(),          // phone
+                tenant.getAdminEmail(),     // admin_email
+                tenant.getAddress()         // address
+        );
+
+        return ResponseEntity.ok(xml);
+    }
+
+
+
+    @GetMapping(value = "/freeswitch/dialplan", produces = "application/xml")
+    public ResponseEntity<String> getDialplan(@RequestParam Map<String, String> params) {
+        String context = params.get("context");
+        if (context == null) return ResponseEntity.badRequest().build();
+
+        String xml = """
+    <document type="freeswitch/xml">
+      <section name="dialplan">
+        <context name="%s">
+          <extension name="demo">
+            <condition field="destination_number" expression="^1000$">
+              <action application="answer"/>
+              <action application="playback" data="demo-thanks"/>
+              <action application="hangup"/>
+            </condition>
+          </extension>
+        </context>
+      </section>
+    </document>
+    """.formatted(context);
+
+        return ResponseEntity.ok(xml);
+    }
+
+
+    @GetMapping(value = "/freeswitch/configuration", produces = "application/xml")
+    public ResponseEntity<String> getConfiguration(@RequestParam Map<String, String> params) {
+        String configName = params.get("key_value");
+        if (!"sofia.conf".equals(configName)) return ResponseEntity.notFound().build();
+
+        String xml = """
+    <document type="freeswitch/xml">
+      <section name="configuration">
+        <configuration name="sofia.conf" description="sofia dynamic config">
+          <profiles>
+            <profile name="internal">
+              <gateways>
+                <gateway name="my-gateway">
+                  <param name="username" value="1000"/>
+                  <param name="password" value="1234"/>
+                </gateway>
+              </gateways>
+            </profile>
+          </profiles>
+        </configuration>
+      </section>
+    </document>
+    """;
+
+        return ResponseEntity.ok(xml);
+    }
+
+    @GetMapping(value = "/freeswitch/phrases", produces = "application/xml")
+    public ResponseEntity<String> getPhrases() {
+        String xml = """
+    <document type="freeswitch/xml">
+      <section name="phrases"/>
+    </document>
+    """;
+        return ResponseEntity.ok(xml);
+    }
+
 }
