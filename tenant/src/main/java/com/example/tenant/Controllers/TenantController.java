@@ -2,7 +2,9 @@ package com.example.tenant.Controllers;
 
 import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
+import com.example.tenant.Entities.UserSip;
 import com.example.tenant.Services.TenantService;
+import com.example.tenant.Services.UserSipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,8 @@ public class TenantController {
     @Autowired
     private TenantService tenantService;
 
+    @Autowired
+    private UserSipService userSipService;
 
     @PostMapping
     public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,
@@ -73,7 +77,7 @@ public class TenantController {
         }
     }
 
-    @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
+  /* @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
     public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
         String domain = params.get("domain");
 
@@ -119,6 +123,85 @@ public class TenantController {
 
         return ResponseEntity.ok(xml);
     }
+*/
+
+    @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
+    public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
+        String domain = params.get("domain");
+
+        if (domain == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Optional<Tenant> tenantOpt = tenantService.getByDomain(domain);
+        if (tenantOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Tenant tenant = tenantOpt.get();
+
+        // Récupérer tous les utilisateurs SIP du tenant
+        List<UserSip> users = userSipService.getUsersByTenantId(tenant.getId());
+
+        StringBuilder usersXml = new StringBuilder();
+
+        for (UserSip user : users) {
+            usersXml.append("""
+            <user id="%s">
+              <variables>
+                <variable name="code Sip" value="%s"/>
+                <variable name="context Sip" value="%s"/>
+                <variable name="email" value="%s"/>
+                <variable name="phone Sip" value="%s"/>
+              </variables>
+            </user>
+        """.formatted(
+                    user.getUsername(),       // ID utilisateur SIP
+                    user.getCodeSip(),         // Code du tenant comme accountcode
+                    user.getContextNameSip(),  // Contexte FreeSWITCH
+                    user.getEmailSip(),          // Email de l'utilisateur SIP
+                    user.getPhoneSip()           // Téléphone de l'utilisateur SIP
+            ));
+        }
+
+        // Construction du XML avec les infos du tenant
+        String xml = """
+        <document type="freeswitch/xml">
+          <section name="directory">
+            <domain name="%s">
+              <user id="%s">
+                <params>
+                  <param name="password" value="1234"/>
+                </params>
+                <variables>
+                  <variable name="accountcode" value="%s"/>
+                  <variable name="context" value="%s"/>
+                  <variable name="email" value="%s"/>
+                  <variable name="phone" value="%s"/>
+                  <variable name="admin_email" value="%s"/>
+                  <variable name="address" value="%s"/>
+                  
+                  %s
+                </variables>
+              </user>
+            </domain>
+          </section>
+        </document>
+        """.formatted(
+                tenant.getDomainName(),     // %s -> domaine
+                tenant.getCode(),           // %s -> id (on prend code ici)
+                tenant.getCode(),           // accountcode
+                tenant.getContextName(),    // context
+                tenant.getEmail(),          // email
+                tenant.getPhone(),          // phone
+                tenant.getAdminEmail(),     // admin_email
+                tenant.getAddress(),         // address
+
+                usersXml.toString()
+        );
+
+        return ResponseEntity.ok(xml);
+    }
 
 
 
@@ -146,11 +229,12 @@ public class TenantController {
         return ResponseEntity.ok(xml);
     }
 
-
+    //Cette méthode sert à fournir dynamiquement la configuration XML de FreeSWITCH pour un fichier spécifique
     @GetMapping(value = "/freeswitch/configuration", produces = "application/xml")
     public ResponseEntity<String> getConfiguration(@RequestParam Map<String, String> params) {
         String configName = params.get("key_value");
         if (!"sofia.conf".equals(configName)) return ResponseEntity.notFound().build();
+        //sofia.conf est la configuration principale du module SIP sofia de FreeSWITCH.
 
         String xml = """
     <document type="freeswitch/xml">
@@ -183,5 +267,24 @@ public class TenantController {
     """;
         return ResponseEntity.ok(xml);
     }
+
+
+
+    // UserSIP methods
+
+
+    @PostMapping("/create-usersip/{tenantId}")
+    public ResponseEntity<String> createUserSip(@PathVariable Long tenantId, @RequestBody UserSipRequest request) {
+        try {
+            // Injecter tenantId dans la requête DTO
+            request.setTenantId(tenantId);
+
+            userSipService.createUserSip(request);
+            return ResponseEntity.ok("UserSip créé et email envoyé avec succès.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Erreur lors de la création du UserSip : " + e.getMessage());
+        }
+    }
+
 
 }

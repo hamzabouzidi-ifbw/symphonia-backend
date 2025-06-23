@@ -21,6 +21,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
     private Long tenantId;
+
     // Constructeur par défaut
     public User() {
     }

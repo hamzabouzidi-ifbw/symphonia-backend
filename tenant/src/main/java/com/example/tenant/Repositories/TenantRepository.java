@@ -20,4 +20,6 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
     Optional<Tenant> findByTenantNameAndIdNot(String tenantName, Long id);
     Optional<Tenant> findByDomainNameAndIdNot(String domainName, Long id);
     Optional<Tenant> findByEmailAndIdNot(String email, Long id);
+    Optional<Tenant> findByContextName(String contextName);
+
 }

@@ -17,6 +17,12 @@ public interface AuthServiceClient {
             @RequestBody RegisterUserRequest userRequest
     );
 
+    @PostMapping("/authentification/registerUserSip")
+    void registerUserSip(
+            @RequestHeader("Authorization") String token,
+            @RequestBody RegisterUserRequest userRequest
+    );
+
     @DeleteMapping("/authentification/users/by-tenant/{tenantId}")
     void deleteUsersByTenant(
             @RequestHeader("Authorization") String token,

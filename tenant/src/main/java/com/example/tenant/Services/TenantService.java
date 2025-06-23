@@ -328,4 +328,8 @@ public class TenantService {
         }
     }
 
+
+    public Optional<Tenant> getByContextName(String contextName) {
+        return tenantRepository.findByContextName(contextName);
+    }
 }
