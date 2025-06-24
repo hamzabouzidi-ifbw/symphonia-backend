@@ -2,9 +2,9 @@ package com.example.tenant.Controllers;
 
 import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
-import com.example.tenant.Entities.UserSip;
+import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Services.TenantService;
-import com.example.tenant.Services.UserSipService;
+import com.example.tenant.Services.SipUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +21,7 @@ public class TenantController {
     private TenantService tenantService;
 
     @Autowired
-    private UserSipService userSipService;
+    private SipUserService userSipService;
 
     @PostMapping
     public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,
@@ -141,26 +141,24 @@ public class TenantController {
         Tenant tenant = tenantOpt.get();
 
         // Récupérer tous les utilisateurs SIP du tenant
-        List<UserSip> users = userSipService.getUsersByTenantId(tenant.getId());
+        List<SipProfile> users = userSipService.getUsersByTenantId(tenant.getId());
 
         StringBuilder usersXml = new StringBuilder();
 
-        for (UserSip user : users) {
+        for (SipProfile user : users) {
             usersXml.append("""
             <user id="%s">
               <variables>
-                <variable name="code Sip" value="%s"/>
-                <variable name="context Sip" value="%s"/>
+                <variable name="extention Sip" value="%s"/>
+                <variable name="domain Sip" value="%s"/>
                 <variable name="email" value="%s"/>
-                <variable name="phone Sip" value="%s"/>
               </variables>
             </user>
         """.formatted(
                     user.getUsername(),       // ID utilisateur SIP
-                    user.getCodeSip(),         // Code du tenant comme accountcode
-                    user.getContextNameSip(),  // Contexte FreeSWITCH
-                    user.getEmailSip(),          // Email de l'utilisateur SIP
-                    user.getPhoneSip()           // Téléphone de l'utilisateur SIP
+                    user.getExtension(),         // Code du tenant comme accountcode
+                    user.getDomainName(),  // Contexte FreeSWITCH
+                    user.getEmail()          // Email de l'utilisateur SIP
             ));
         }
 
@@ -267,24 +265,5 @@ public class TenantController {
     """;
         return ResponseEntity.ok(xml);
     }
-
-
-
-    // UserSIP methods
-
-
-    @PostMapping("/create-usersip/{tenantId}")
-    public ResponseEntity<String> createUserSip(@PathVariable Long tenantId, @RequestBody UserSipRequest request) {
-        try {
-            // Injecter tenantId dans la requête DTO
-            request.setTenantId(tenantId);
-
-            userSipService.createUserSip(request);
-            return ResponseEntity.ok("UserSip créé et email envoyé avec succès.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erreur lors de la création du UserSip : " + e.getMessage());
-        }
-    }
-
 
 }

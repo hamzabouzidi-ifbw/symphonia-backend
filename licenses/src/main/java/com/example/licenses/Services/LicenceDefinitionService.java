@@ -8,6 +8,7 @@ import com.example.licenses.Repositories.LicenceDefinitionRepository;
 import com.example.licenses.dto.LicenceAssignmentRequest;
 import com.example.licenses.dto.MultipleLicenceAssignmentRequest;
 import com.example.licenses.dto.UpdateLicenceAssignmentRequest;
+import com.example.licenses.dto.UpdateLicenceAssignmentUserRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -153,5 +154,14 @@ public class LicenceDefinitionService {
         }
 
         repositoryLicence.delete(assignment.get());
+    }
+
+    public LicenceAssignment updateSingleLicenceAssignmentUser(Long tenantId, UpdateLicenceAssignmentUserRequest request) {
+        LicenceAssignment assignment = repositoryLicence
+                .findByTenantIdAndLicenceDefinitionId(tenantId, request.getLicenceDefinitionId())
+                .orElseThrow(() -> new RuntimeException("Licence assignment not found"));
+
+        assignment.setUsedUsers(request.getUsedUsers());
+        return repositoryLicence.save(assignment);
     }
 }

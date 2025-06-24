@@ -104,12 +104,11 @@ public class authController {
         userService.registerAdminTenant(request);
         return ResponseEntity.ok("Utilisateur enregistré avec succès.");
     }
-
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("/registerUserSip")
-    public ResponseEntity<String> registerUserSip(@RequestBody authDto request) {
-        userService.registerUserSip(request);
-        return ResponseEntity.ok("Utilisateur sip enregistré avec succès.");
+    @PostMapping("/register-sip")
+    public ResponseEntity<String> registerSipUser(@RequestBody authDto request) {
+        userService.registerSipUser(request);
+        return ResponseEntity.ok("Utilisateur enregistré avec succès.");
     }
     @DeleteMapping("/users/by-tenant/{tenantId}")
 

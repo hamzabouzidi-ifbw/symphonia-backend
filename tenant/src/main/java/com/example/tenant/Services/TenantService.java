@@ -12,6 +12,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -125,7 +126,7 @@ public class TenantService {
         return savedTenant;
     }*/
 
-
+    @Transactional
     public Tenant createTenant(CreateTenantRequest request) {
         if (tenantRepository.findByTenantName(request.getTenantName()).isPresent())
             throw new RuntimeException("Un tenant avec ce nom existe déjà.");

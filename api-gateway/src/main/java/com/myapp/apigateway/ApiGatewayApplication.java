@@ -27,6 +27,8 @@ public class ApiGatewayApplication {
                         .uri("http://localhost:8085/"))
                 .route("tenant", r->r.path("/tenant/**")
                         .uri("http://localhost:8086/"))
+                .route("sip-users", r->r.path("/sip-users/**")
+                        .uri("http://localhost:8086/"))
                 .build();
     }
 

@@ -7,6 +7,16 @@ public class RegisterUserRequest {
     private String role;
     private Long tenantId;
 
+    public RegisterUserRequest() {
+    }
+
+    public RegisterUserRequest(String email, String password, String role, Long tenantId) {
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.tenantId = tenantId;
+    }
+
     // Getters et setters
     public String getEmail() {
         return email;

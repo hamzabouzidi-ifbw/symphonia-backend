@@ -7,10 +7,12 @@ import com.example.licenses.Services.LicenceDefinitionService;
 
 import com.example.licenses.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -187,6 +189,36 @@ public class LicenceDefinitionController {
             }
         } else {
             return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to update licence assignments."));
+        }
+    }
+
+    @PutMapping("/update-assignment-user/{tenantId}")
+    public ResponseEntity<?> updateSingleAssignment(
+            @PathVariable Long tenantId,
+            @RequestBody UpdateLicenceAssignmentUserRequest request,
+            @RequestHeader("Authorization") String token,
+            @RequestHeader("role") String role) {
+
+        // Vérification des autorisations
+        if (!"SUPER_ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Vous n'avez pas la permission de modifier les licences"));
+        }
+
+        try {
+            // Appel du service
+            LicenceAssignment updatedAssignment = service.updateSingleLicenceAssignmentUser(tenantId, request);
+
+            // Réponse réussie
+            return ResponseEntity.ok(updatedAssignment);
+
+        } catch (RuntimeException e) {
+            // Gestion des erreurs
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", e.getMessage(),
+                            "timestamp", LocalDateTime.now()
+                    ));
         }
     }
 
