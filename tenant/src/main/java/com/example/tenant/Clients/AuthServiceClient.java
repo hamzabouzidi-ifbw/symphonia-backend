@@ -5,6 +5,8 @@ import com.example.tenant.Entities.SipProfile;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @FeignClient(name = "authentification", url = "${auth.service.url}")
 public interface AuthServiceClient {
 
@@ -24,4 +26,11 @@ public interface AuthServiceClient {
             @RequestHeader("Authorization") String token,
             @RequestBody RegisterUserRequest userRequest
     );
+
+    @DeleteMapping("/authentification/users/by-tenant/{tenantId}")
+    void deleteSipUsers(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long tenantId
+    );
+
 }

@@ -58,73 +58,6 @@ public class TenantService {
         }
     }
 
-   /* public Tenant createTenant(CreateTenantRequest request) {
-        // 1. Vérifications de l'unicité
-        if (tenantRepository.findByTenantName(request.getTenantName()).isPresent())
-            throw new RuntimeException("Un tenant avec ce nom existe déjà.");
-        if (tenantRepository.findByEmail(request.getEmail()).isPresent())
-            throw new RuntimeException("Un tenant avec cet email existe déjà.");
-        if (tenantRepository.findByAdminEmail(request.getAdminEmail()).isPresent())
-            throw new RuntimeException("Cet email admin est déjà utilisé par un autre tenant.");
-
-        // 2. Génération automatique des champs
-        String domainName = request.getTenantName() + "@symphonia.com";
-        String contextName = request.getTenantName() + "_context";
-        String code = request.getTenantName() + "-" + String.format("%03d", new Random().nextInt(1000));
-
-        // 3. Création de l'entité Tenant
-        Tenant tenant = new Tenant();
-        tenant.setTenantName(request.getTenantName());
-        tenant.setAddress(request.getAddress());
-        tenant.setEmail(request.getEmail());
-        tenant.setPhone(request.getPhone());
-        tenant.setDomainName(domainName);
-        tenant.setContextName(contextName);
-        tenant.setAdminEmail(request.getAdminEmail());
-        tenant.setCode(code);
-
-        Tenant savedTenant = tenantRepository.save(tenant);
-
-        // Get authorization token from request
-        HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String token = httpRequest.getHeader("Authorization");
-
-        // 3. Appel au microservice de licences
-        try {
-            MultipleLicenceAssignmentRequest licenceRequest = new MultipleLicenceAssignmentRequest();
-            licenceRequest.setTenantId(savedTenant.getId());
-            for (LicenceAssignmentRequest licence : request.getLicences()) {
-                licence.setTenantId(savedTenant.getId());
-            }
-            licenceRequest.setLicences(request.getLicences());
-
-            licenceServiceClient.assignMultipleLicences(token, licenceRequest);
-        } catch (Exception e) {
-            tenantRepository.delete(savedTenant);
-            throw new RuntimeException("Échec de l'assignation des licences. Le tenant a été supprimé.", e);
-        }
-
-        // 4. Génération du mot de passe admin et enregistrement dans auth-service
-        try {
-            String password = UUID.randomUUID().toString().substring(0, 10);
-
-            RegisterUserRequest userRequest = new RegisterUserRequest();
-            userRequest.setEmail(request.getAdminEmail());
-            userRequest.setPassword(password);
-            userRequest.setRole("ADMIN_TENANT");
-            userRequest.setTenantId(savedTenant.getId());
-
-            authServiceClient.registerTenantUser(token, userRequest);
-
-            // Envoi des credentials
-            emailService.sendCredentials(request.getAdminEmail(), password);
-        } catch (Exception e) {
-            tenantRepository.delete(savedTenant);
-            throw new RuntimeException("Échec de la création de l'utilisateur admin. Le tenant a été supprimé.", e);
-        }
-
-        return savedTenant;
-    }*/
 
     @Transactional
     public Tenant createTenant(CreateTenantRequest request) {
@@ -273,7 +206,7 @@ public class TenantService {
         String token = httpRequest.getHeader("Authorization");
 
         // ✅ Appel pour notifier FreeSWITCH
-        notifyFreeSWITCHDirectoryUpdate(updatedTenant.getDomainName(), token);
+        //notifyFreeSWITCHDirectoryUpdate(updatedTenant.getDomainName(), token);
 
         return updatedTenant;
 
@@ -296,7 +229,7 @@ public class TenantService {
             tenantRepository.delete(tenant);
 
             // ✅ Appel pour notifier FreeSWITCH après suppression
-            notifyFreeSWITCHDirectoryUpdate(tenant.getDomainName(), token);
+           // notifyFreeSWITCHDirectoryUpdate(tenant.getDomainName(), token);
 
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la suppression du tenant: " + e.getMessage());

@@ -3,7 +3,7 @@ package com.example.tenant.Dto;
 import java.util.UUID;
 
 public class SipUserCreationResponse {
-    private UUID id;
+    private Long id;
     private String username;
     private String email;
     private String extension;
@@ -12,7 +12,7 @@ public class SipUserCreationResponse {
     private String password;
     private String message;
 
-    public SipUserCreationResponse(UUID id, String username, String email, String extension, String domainName, boolean active, String password, String message) {
+    public SipUserCreationResponse(Long id, String username, String email, String extension, String domainName, boolean active, String password, String message) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -31,11 +31,11 @@ public class SipUserCreationResponse {
         this.password = password;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

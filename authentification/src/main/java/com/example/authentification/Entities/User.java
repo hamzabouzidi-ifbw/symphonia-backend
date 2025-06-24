@@ -22,9 +22,12 @@ public class User {
     private Role role;
     private Long tenantId;
 
+
     // Constructeur par défaut
     public User() {
     }
+
+
 
     // Constructeur avec email, password et role
     public User(String email, String password, Role role) {

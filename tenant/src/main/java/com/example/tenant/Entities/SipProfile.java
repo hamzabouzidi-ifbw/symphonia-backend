@@ -1,11 +1,5 @@
 package com.example.tenant.Entities;
 
-
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -16,7 +10,7 @@ public class SipProfile {
 
     @Id
     @GeneratedValue
-    private UUID id;
+    private Long id;
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -53,11 +47,11 @@ public class SipProfile {
         creationDate = LocalDateTime.now();
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

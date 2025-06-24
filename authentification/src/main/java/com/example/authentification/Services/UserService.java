@@ -8,9 +8,7 @@ import com.example.authentification.Repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Autowired;
-import javax.annotation.PostConstruct;
-import java.util.List;
+
 
 @Service
 public class UserService  {
@@ -129,4 +127,17 @@ public class UserService  {
             throw new RuntimeException("Erreur lors de la suppression des utilisateurs du tenant: " + e.getMessage());
         }
     }
+
+   /* public void deleteUserSipById(Long tenantId) {
+        try {
+            User users = userRepository.findBySipUserId(tenantId);
+
+            userRepository.delete(users);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la suppression des utilisateurs du tenant: " + e.getMessage());
+        }
+    }
+*/
+
+
 }

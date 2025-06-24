@@ -122,4 +122,20 @@ public class authController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+
+  /*  @DeleteMapping("/users/by-tenant/{sipUserId}")
+
+    public ResponseEntity<?> deleteSipUsers(@PathVariable Long sipUserId,
+                                          @RequestHeader("Authorization") String token) {
+        try {
+            userService.deleteUserSipById(sipUserId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }*/
+
+
 }

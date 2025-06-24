@@ -32,6 +32,9 @@ public class SipUserService {
     private AuthServiceClient authServiceClient;
 
     @Autowired
+    private LicenceServiceClient licenceServiceClient;
+
+    @Autowired
     private LicenceServiceClient licenseServiceClient;
 
     @Autowired
@@ -110,6 +113,79 @@ public class SipUserService {
         );
     }
 
+    @Transactional
+    public SipUserCreationResponse updateSipUser(Long sipUserId, CreateSipUserRequest request) {
+        SipProfile existingUser = sipProfileRepository.findById(sipUserId)
+                .orElseThrow(() -> new RuntimeException("SIP User not found"));
+
+        // Vérification du username
+        Optional<SipProfile> userWithSameUsername = sipProfileRepository.findByUsername(request.getUsername());
+        if (userWithSameUsername.isPresent() && !userWithSameUsername.get().getId().equals(sipUserId)) {
+            throw new RuntimeException("Un autre utilisateur avec ce nom existe déjà");
+        }
+
+        // Vérification de l'email
+        Optional<SipProfile> userWithSameEmail = sipProfileRepository.findByEmail(request.getEmail());
+        if (userWithSameEmail.isPresent() && !userWithSameEmail.get().getId().equals(sipUserId)) {
+            throw new RuntimeException("Un autre utilisateur avec cet email existe déjà");
+        }
+
+        // Vérification de l'extension
+        if (request.getExtension() != null) {
+            Optional<SipProfile> userWithSameExtension = sipProfileRepository.findByExtension(request.getExtension());
+            if (userWithSameExtension.isPresent() && !userWithSameExtension.get().getId().equals(sipUserId)) {
+                throw new RuntimeException("Un autre utilisateur avec cette extension existe déjà");
+            }
+        }
+
+        // Mise à jour des champs
+        existingUser.setUsername(request.getUsername());
+        existingUser.setEmail(request.getEmail());
+        existingUser.setExtension(request.getExtension());
+        existingUser.setPassword(request.getPassword()); // Si tu veux permettre le changement de mot de passe
+        existingUser.setLicenceDefinitionId(request.getLicenceDefinitionId());
+
+        SipProfile updatedUser = sipProfileRepository.save(existingUser);
+
+        return new SipUserCreationResponse(
+                updatedUser.getId(),
+                updatedUser.getUsername(),
+                updatedUser.getEmail(),
+                updatedUser.getExtension(),
+                updatedUser.getDomainName(),
+                updatedUser.isActive(),
+                updatedUser.getPassword(),
+                "SIP User updated successfully"
+        );
+    }
+
+    public void deleteSipUser(Long sipUserId, String authToken) {
+        // Récupérer le profil SIP
+        SipProfile user = sipProfileRepository.findById(sipUserId)
+                .orElseThrow(() -> new RuntimeException("SIP User not found"));
+
+        // Supprimer dans le service d'auth (par exemple, par email)
+        try {
+            // 1. Suppression des utilisateurs
+            authServiceClient.deleteSipUsers(authToken, sipUserId);
+
+            // 2. Suppression des licences
+            licenceServiceClient.deleteLicencesBySipUser(authToken, sipUserId);
+            // 3. Finalement supprimer le tenant
+            sipProfileRepository.delete(user);
+        }catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la suppression du tenant: " + e.getMessage());
+        }
+    }
+
+    public List<SipProfile> getSipUsersByTenantId(Long tenantId) {
+        return sipProfileRepository.findAllByTenantId(tenantId);
+    }
+
+    public Optional<SipProfile> getSipUserById(Long id) {
+        return sipProfileRepository.findById(id);
+    }
+
     public List<SipProfile> getByTenant(Tenant tenant) {
         return sipProfileRepository.findAll()
                 .stream().filter(u -> u.getTenantId().equals(tenant))
@@ -120,7 +196,5 @@ public class SipUserService {
         return sipProfileRepository.findByTenantId(tenantId);
     }
 
-   /* public Optional<SipProfile> findByUsernameAndTenant(String username, Long tenantId) {
-        return sipProfileRepository.findByUsernameAndTenantId(username, tenantId);
-    }*/
+
 }

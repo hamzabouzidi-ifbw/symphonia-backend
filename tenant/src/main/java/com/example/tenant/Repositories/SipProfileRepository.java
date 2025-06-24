@@ -5,19 +5,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface SipProfileRepository extends JpaRepository<SipProfile, UUID> {
+public interface SipProfileRepository extends JpaRepository<SipProfile, Long> {
 
-    // Trouver un profil SIP par username
-    SipProfile findByUsername(String username);
-
-    // Trouver un profil SIP par email
-    SipProfile findByEmail(String email);
-
-    // Trouver un profil SIP par extension
-    SipProfile findByExtension(String extension);
+    Optional<SipProfile> findByUsername(String username);
+    Optional<SipProfile> findByEmail(String email);
+    Optional<SipProfile> findByExtension(String extension);
 
     // Trouver tous les profils SIP d'un tenant
     List<SipProfile> findByTenantId(Long tenantId);
@@ -39,4 +35,6 @@ public interface SipProfileRepository extends JpaRepository<SipProfile, UUID> {
 
     // Trouver les profils SIP par tenant et licence
     List<SipProfile> findByTenantIdAndLicenceDefinitionId(Long tenantId, UUID licenceDefinitionId);
+    List<SipProfile> findAllByTenantId(Long tenantId);
+
 }

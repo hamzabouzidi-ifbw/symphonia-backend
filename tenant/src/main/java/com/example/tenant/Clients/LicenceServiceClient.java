@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @FeignClient(name = "licence-service", url = "${licence.service.url}")
 public interface LicenceServiceClient {
@@ -33,4 +34,10 @@ public interface LicenceServiceClient {
     ResponseEntity<?> updateLicenceAssignment(@PathVariable Long tenantId,
                                               @RequestBody UpdateLicenceAssignmentRequest request,
                                               @RequestHeader("Authorization") String token);
+
+    @DeleteMapping("/by-tenant/{sipUserId}")
+    void deleteLicencesBySipUser(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long sipUserId
+    );
 }
