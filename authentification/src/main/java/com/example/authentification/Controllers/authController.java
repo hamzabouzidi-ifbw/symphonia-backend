@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("authentification")
@@ -123,19 +124,17 @@ public class authController {
         }
     }
 
-
-  /*  @DeleteMapping("/users/by-tenant/{sipUserId}")
-
-    public ResponseEntity<?> deleteSipUsers(@PathVariable Long sipUserId,
-                                          @RequestHeader("Authorization") String token) {
-        try {
-            userService.deleteUserSipById(sipUserId);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
+    @DeleteMapping("/authentification/users/by-email")
+    public ResponseEntity<Void> deleteByEmail(@RequestParam String email) {
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isPresent()) {
+            userRepository.delete(user.get());
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
         }
-    }*/
+    }
+
 
 
 }

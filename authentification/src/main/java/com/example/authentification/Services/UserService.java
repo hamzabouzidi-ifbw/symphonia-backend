@@ -103,21 +103,20 @@ public class UserService  {
         }
     }
     public void registerSipUser(authDto request) {
-        // Créer l'utilisateur
+        // Vérification si un utilisateur avec cet email existe déjà
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email déjà utilisé");
+        }
+
         User user = new User();
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
-        // Convertir le String 'role' en Role enum
-        Role role = Role.valueOf(request.getRole().toUpperCase()); // Assure-toi que le rôle est en majuscule
-
-        user.setRole(role);  // Assigner l'énumération Role à l'utilisateur
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(Role.valueOf(request.getRole().toUpperCase()));
         user.setTenantId(request.getTenantId());
-        System.out.print(request.getTenantId());
-        // Sauvegarder dans la base de données
+
         userRepository.save(user);
     }
+
     public void deleteUsersByTenantId(Long tenantId) {
         try {
             User users = userRepository.findByTenantId(tenantId);

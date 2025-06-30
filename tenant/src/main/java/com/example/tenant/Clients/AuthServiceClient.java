@@ -32,5 +32,14 @@ public interface AuthServiceClient {
             @RequestHeader("Authorization") String token,
             @PathVariable Long tenantId
     );
+    @GetMapping("/authentification/users/check-email")
+    Boolean checkIfEmailExists(@RequestHeader("Authorization") String token,
+                               @RequestParam("email") String email);
+
+    @DeleteMapping("/authentification/users/by-email")
+    void deleteUserByEmail(
+            @RequestHeader("Authorization") String token,
+            @RequestParam("email") String email
+    );
 
 }

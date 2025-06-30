@@ -40,7 +40,7 @@ public class SipUserService {
     @Autowired
     private EmailService emailService;
 
-    @Transactional
+   @Transactional
     public SipUserCreationResponse createSipUser(CreateSipUserRequest request, String authToken) {
         // Vérifier si le tenant existe
         Tenant tenant = tenantRepository.findById(request.getTenantId())
@@ -138,11 +138,10 @@ public class SipUserService {
             }
         }
 
-        // Mise à jour des champs
+        // Mise à jour des champs sauf le mot de passe
         existingUser.setUsername(request.getUsername());
         existingUser.setEmail(request.getEmail());
         existingUser.setExtension(request.getExtension());
-        existingUser.setPassword(request.getPassword()); // Si tu veux permettre le changement de mot de passe
         existingUser.setLicenceDefinitionId(request.getLicenceDefinitionId());
 
         SipProfile updatedUser = sipProfileRepository.save(existingUser);
@@ -154,29 +153,37 @@ public class SipUserService {
                 updatedUser.getExtension(),
                 updatedUser.getDomainName(),
                 updatedUser.isActive(),
-                updatedUser.getPassword(),
+                null, // mot de passe non retourné ou null
                 "SIP User updated successfully"
         );
     }
 
+
+    @Transactional
     public void deleteSipUser(Long sipUserId, String authToken) {
-        // Récupérer le profil SIP
+        // 1. Récupérer le SIP Profile
         SipProfile user = sipProfileRepository.findById(sipUserId)
                 .orElseThrow(() -> new RuntimeException("SIP User not found"));
 
-        // Supprimer dans le service d'auth (par exemple, par email)
-        try {
-            // 1. Suppression des utilisateurs
-            authServiceClient.deleteSipUsers(authToken, sipUserId);
+        // 2. Récupérer la licence affectée à ce SIP user
+        List<LicenceAssignmentRequest> licences = licenseServiceClient.getLicencesByTenant(authToken, user.getTenantId());
 
-            // 2. Suppression des licences
-            licenceServiceClient.deleteLicencesBySipUser(authToken, sipUserId);
-            // 3. Finalement supprimer le tenant
-            sipProfileRepository.delete(user);
-        }catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la suppression du tenant: " + e.getMessage());
-        }
+        LicenceAssignmentRequest licence = licences.stream()
+                .filter(l -> l.getLicenceDefinitionId().equals(user.getLicenceDefinitionId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Licence non trouvée pour cet utilisateur"));
+
+        // 3. Décrémenter le nombre d'utilisateurs utilisés
+        UpdateLicenceAssignmentRequest updateRequest = new UpdateLicenceAssignmentRequest();
+        updateRequest.setLicenceDefinitionId(user.getLicenceDefinitionId());
+        updateRequest.setUsedUsers(Math.max(licence.getUsedUsers() - 1, 0)); // pour éviter -1
+
+        licenseServiceClient.updateLicenceAssignment(user.getTenantId(), updateRequest, authToken);
+
+        // 4. Supprimer le SIP user de la base
+        sipProfileRepository.delete(user);
     }
+
 
     public List<SipProfile> getSipUsersByTenantId(Long tenantId) {
         return sipProfileRepository.findAllByTenantId(tenantId);

@@ -52,6 +52,21 @@ public class SipUserController {
 
 
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteSipUser(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String token) {
+
+        try {
+            sipUserService.deleteSipUser(id, token);
+            return ResponseEntity.ok("SIP User deleted and licence quota updated.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de la suppression du SIP user: " + e.getMessage());
+        }
+    }
+
+
 
 
 }

@@ -5,17 +5,10 @@ public class authDto {
     private String password;
     private String role;
     private Long tenantId;
-    private Long UserSipId;
 
     // Getters et Setters
 
-    public Long getUserSipId() {
-        return UserSipId;
-    }
 
-    public void setUserSipId(Long userSipId) {
-        UserSipId = userSipId;
-    }
 
     public String getEmail() {
         return email;
