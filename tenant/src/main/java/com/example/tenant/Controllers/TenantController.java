@@ -3,6 +3,7 @@ package com.example.tenant.Controllers;
 import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.SipProfile;
+import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.SipUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,9 @@ public class TenantController {
 
     @Autowired
     private TenantService tenantService;
+
+    @Autowired
+    private TenantRepository tenantRepository;
 
     @Autowired
     private SipUserService userSipService;
@@ -75,6 +79,13 @@ public class TenantController {
         } else {
             return ResponseEntity.status(403).body(Map.of("error", "Vous n'avez pas la permission de supprimer ce tenant."));
         }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Tenant> getTenantById(@PathVariable Long id) {
+        Optional<Tenant> tenant = tenantRepository.findById(id);
+        return tenant.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
   /* @GetMapping(value = "/freeswitch/directory", produces = "application/xml")

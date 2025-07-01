@@ -7,6 +7,7 @@ import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Repositories.SipProfileRepository;
 import com.example.tenant.Repositories.TenantRepository;
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -40,29 +41,112 @@ public class SipUserService {
     @Autowired
     private EmailService emailService;
 
-   @Transactional
-    public SipUserCreationResponse createSipUser(CreateSipUserRequest request, String authToken) {
-        // Vérifier si le tenant existe
+     /*  @Transactional
+       public SipProfile createSipUser(CreateSipUserRequest request) {
+           // Vérifier si le tenant existe
+           Tenant tenant = tenantRepository.findById(request.getTenantId())
+                   .orElseThrow(() -> new RuntimeException("Tenant not found"));
+           HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+           String token = httpRequest.getHeader("Authorization");
+
+           // Vérifier les licences disponibles
+           List<LicenceAssignmentRequest> licences = licenseServiceClient.getLicencesByTenant(token, request.getTenantId());
+
+           LicenceAssignmentRequest matchingLicence = licences.stream()
+                   .filter(l -> l.getLicenceDefinitionId().equals(request.getLicenceDefinitionId()))
+                   .findFirst()
+                   .orElseThrow(() -> new RuntimeException("Licence not assigned to this tenant"));
+
+           if (matchingLicence.getUsedUsers() >= matchingLicence.getMaxUsers()) {
+               throw new RuntimeException("Licence quota exceeded");
+           }
+
+           // Créer le SIP Profile
+           SipProfile sipProfile = new SipProfile();
+           sipProfile.setUsername(request.getUsername());
+           sipProfile.setEmail(request.getEmail());
+           String password = UUID.randomUUID().toString().substring(0, 10);
+           sipProfile.setPassword(password);
+           sipProfile.setExtension(request.getExtension());
+           sipProfile.setTenantId(request.getTenantId());
+           sipProfile.setDomainName(tenant.getDomainName());
+           sipProfile.setLicenceDefinitionId(request.getLicenceDefinitionId());
+           sipProfile.setActive(true);
+
+           SipProfile savedProfile = sipProfileRepository.save(sipProfile);
+
+
+
+           // Mettre à jour le quota de licence
+           UpdateLicenceAssignmentRequest updateRequest = new UpdateLicenceAssignmentRequest();
+           updateRequest.setLicenceDefinitionId(request.getLicenceDefinitionId());
+           updateRequest.setUsedUsers(matchingLicence.getUsedUsers() + 1);
+
+           licenseServiceClient.updateLicenceAssignment(request.getTenantId(), updateRequest, token);
+
+           try {
+               // Enregistrer l'utilisateur dans le service d'authentification
+               RegisterUserRequest userRequest = new RegisterUserRequest(
+                       request.getEmail(),
+                       password,
+                       "USER", // ou "ADMIN_TENANT" selon vos besoins
+                       request.getTenantId()
+               );
+
+               authServiceClient.registerSipUser(token, userRequest);
+
+               // Envoi des credentials
+               emailService.sendCredentials(request.getEmail(), password);
+           } catch (Exception e) {
+               // En cas d'échec, supprimer le profil SIP créé
+               sipProfileRepository.delete(savedProfile);
+               throw new RuntimeException("Failed to register user in auth service", e);
+           }
+           // Retourner la réponse DTO au lieu de l'entité
+           return savedProfile;
+       }
+*/
+
+
+    @Transactional
+    public SipProfile createSipUser(CreateSipUserRequest request) {
+        HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String token = httpRequest.getHeader("Authorization");
+
+        Boolean emailExistsLocal = sipProfileRepository.existsByEmail(request.getEmail());
+        Boolean emailExistsRemote = authServiceClient.checkIfUserExists(request.getEmail(), token);
+
+        if (Boolean.TRUE.equals(emailExistsLocal) || Boolean.TRUE.equals(emailExistsRemote)) {
+            throw new RuntimeException("Email déjà utilisé");
+        }
+
         Tenant tenant = tenantRepository.findById(request.getTenantId())
                 .orElseThrow(() -> new RuntimeException("Tenant not found"));
 
-        // Vérifier les licences disponibles
-        List<LicenceAssignmentRequest> licences = licenseServiceClient.getLicencesByTenant(authToken, request.getTenantId());
+
+        // 1. Vérification email déjà existant dans auth-service
+        Boolean emailExists = authServiceClient.checkIfUserExists(request.getEmail(), token);
+        if (Boolean.TRUE.equals(emailExists)) {
+            throw new RuntimeException("Email déjà utilisé");
+        }
+
+        // 2. Vérification licence
+        List<LicenceAssignmentRequest> licences = licenceServiceClient.getLicencesByTenant(token, request.getTenantId());
 
         LicenceAssignmentRequest matchingLicence = licences.stream()
                 .filter(l -> l.getLicenceDefinitionId().equals(request.getLicenceDefinitionId()))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Licence not assigned to this tenant"));
+                .orElseThrow(() -> new RuntimeException("Licence non assignée au tenant"));
 
         if (matchingLicence.getUsedUsers() >= matchingLicence.getMaxUsers()) {
-            throw new RuntimeException("Licence quota exceeded");
+            throw new RuntimeException("Quota de licence dépassé");
         }
 
-        // Créer le SIP Profile
+        // 3. Création SIP
+        String password = UUID.randomUUID().toString().substring(0, 10);
         SipProfile sipProfile = new SipProfile();
         sipProfile.setUsername(request.getUsername());
         sipProfile.setEmail(request.getEmail());
-        String password = UUID.randomUUID().toString().substring(0, 10);
         sipProfile.setPassword(password);
         sipProfile.setExtension(request.getExtension());
         sipProfile.setTenantId(request.getTenantId());
@@ -72,47 +156,31 @@ public class SipUserService {
 
         SipProfile savedProfile = sipProfileRepository.save(sipProfile);
 
-        try {
-            // Enregistrer l'utilisateur dans le service d'authentification
-            RegisterUserRequest userRequest = new RegisterUserRequest(
-                    request.getEmail(),
-                    password,
-                    "USER", // ou "ADMIN_TENANT" selon vos besoins
-                    request.getTenantId()
-            );
-
-            authServiceClient.registerSipUser(authToken, userRequest);
-
-            // Envoi des credentials
-            emailService.sendCredentials(request.getEmail(), password);
-        } catch (Exception e) {
-            // En cas d'échec, supprimer le profil SIP créé
-            sipProfileRepository.delete(savedProfile);
-            throw new RuntimeException("Failed to register user in auth service", e);
-        }
-
-        // Mettre à jour le quota de licence
+        // 4. Mise à jour licence
         UpdateLicenceAssignmentRequest updateRequest = new UpdateLicenceAssignmentRequest();
         updateRequest.setLicenceDefinitionId(request.getLicenceDefinitionId());
         updateRequest.setUsedUsers(matchingLicence.getUsedUsers() + 1);
 
-        licenseServiceClient.updateLicenceAssignment(request.getTenantId(), updateRequest, authToken);
+        licenceServiceClient.updateLicenceAssignment(request.getTenantId(), updateRequest, token);
 
-        // Retourner la réponse DTO au lieu de l'entité
-        return new SipUserCreationResponse(
-                savedProfile.getId(),
-                savedProfile.getUsername(),
-                savedProfile.getEmail(),
-                savedProfile.getExtension(),
+        try {
+            RegisterUserRequest userRequest = new RegisterUserRequest(
+                    request.getEmail(),
+                    password,
+                    "USER",
+                    request.getTenantId()
+            );
 
-                savedProfile.getDomainName(),
+            authServiceClient.registerSipUser(token, userRequest);
 
-                savedProfile.isActive(),
-                savedProfile.getPassword(),
-                "SIP User created successfully"
-        );
+            emailService.sendCredentials(request.getEmail(), password);
+        } catch (Exception e) {
+            sipProfileRepository.delete(savedProfile);
+            throw new RuntimeException("Échec lors de l'enregistrement dans le service d'auth", e);
+        }
+
+        return savedProfile;
     }
-
     @Transactional
     public SipUserCreationResponse updateSipUser(Long sipUserId, CreateSipUserRequest request) {
         SipProfile existingUser = sipProfileRepository.findById(sipUserId)

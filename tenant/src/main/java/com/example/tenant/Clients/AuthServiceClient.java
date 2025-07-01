@@ -16,15 +16,13 @@ public interface AuthServiceClient {
             @RequestBody RegisterUserRequest userRequest
     );
 
+    @PostMapping("/authentification/register-sip")
+    void registerSipUser(@RequestHeader("Authorization") String token,
+                         @RequestBody RegisterUserRequest userRequest);
     @DeleteMapping("/authentification/users/by-tenant/{tenantId}")
     void deleteUsersByTenant(
             @RequestHeader("Authorization") String token,
             @PathVariable Long tenantId
-    );
-    @PostMapping("/authentification/register-sip")
-    void registerSipUser(
-            @RequestHeader("Authorization") String token,
-            @RequestBody RegisterUserRequest userRequest
     );
 
     @DeleteMapping("/authentification/users/by-tenant/{tenantId}")
@@ -41,5 +39,8 @@ public interface AuthServiceClient {
             @RequestHeader("Authorization") String token,
             @RequestParam("email") String email
     );
+    @GetMapping("/authentification/users/exists")
+    Boolean checkIfUserExists(@RequestParam("email") String email, @RequestHeader("Authorization") String authToken);
+
 
 }

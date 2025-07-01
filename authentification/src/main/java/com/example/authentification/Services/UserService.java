@@ -103,11 +103,7 @@ public class UserService  {
         }
     }
     public void registerSipUser(authDto request) {
-        // Vérification si un utilisateur avec cet email existe déjà
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email déjà utilisé");
-        }
-
+        // NE PAS refaire la vérification ici si déjà faite côté tenant
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -116,6 +112,7 @@ public class UserService  {
 
         userRepository.save(user);
     }
+
 
     public void deleteUsersByTenantId(Long tenantId) {
         try {
@@ -126,17 +123,4 @@ public class UserService  {
             throw new RuntimeException("Erreur lors de la suppression des utilisateurs du tenant: " + e.getMessage());
         }
     }
-
-   /* public void deleteUserSipById(Long tenantId) {
-        try {
-            User users = userRepository.findBySipUserId(tenantId);
-
-            userRepository.delete(users);
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la suppression des utilisateurs du tenant: " + e.getMessage());
-        }
-    }
-*/
-
-
 }

@@ -135,6 +135,10 @@ public class authController {
         }
     }
 
-
+    @GetMapping("/users/exists")
+    public ResponseEntity<Boolean> checkIfUserExists(@RequestParam String email) {
+        boolean exists = userRepository.existsByEmail(email);
+        return ResponseEntity.ok(exists);
+    }
 
 }
