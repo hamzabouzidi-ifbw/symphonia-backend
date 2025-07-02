@@ -266,4 +266,21 @@ public class TenantService {
     public Optional<Tenant> getByContextName(String contextName) {
         return tenantRepository.findByContextName(contextName);
     }
+
+    @Transactional
+    public void deactivateTenant(Long tenantId, String token) {
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new RuntimeException("Tenant not found"));
+
+        // 1. Désactiver le tenant
+        tenant.setActive(false);
+        tenantRepository.save(tenant);
+
+        // 2. Désactiver tous les utilisateurs associés à ce tenant
+        try {
+            authServiceClient.deactivateUsersByTenant(token, tenantId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deactivate users for tenant", e);
+        }
+    }
 }

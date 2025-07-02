@@ -7,6 +7,7 @@ import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.SipUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -87,7 +88,25 @@ public class TenantController {
         return tenant.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    @PutMapping("/{tenantId}/deactivate")
+    public ResponseEntity<?> deactivateTenant(
+            @PathVariable Long tenantId,
+            @RequestHeader("Authorization") String token,
+            @RequestHeader("role") String role) {
 
+        if (!"SUPER_ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You don't have permission to deactivate tenants"));
+        }
+
+        try {
+            tenantService.deactivateTenant(tenantId, token);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 
    /* @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
     public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
