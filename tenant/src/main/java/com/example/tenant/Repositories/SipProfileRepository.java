@@ -22,4 +22,5 @@ public interface SipProfileRepository extends JpaRepository<SipProfile, Long> {
     Optional<SipProfile> findByEmail(String email);
     boolean existsByEmail(String email);
 
+
 }

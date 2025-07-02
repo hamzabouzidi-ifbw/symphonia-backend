@@ -271,5 +271,11 @@ public class SipUserService {
         return sipProfileRepository.findByTenantId(tenantId);
     }
 
+    public List<SipProfile> getUsersByContext(String context) {
+        // Si tu stockes le contexte dans tenant, récupère le tenant via contexte, puis ses utilisateurs
+        Tenant tenant = tenantRepository.findByContextName(context)
+                .orElseThrow(() -> new RuntimeException("Tenant not found for context: " + context));
+        return sipProfileRepository.findByTenantId(tenant.getId());
+    }
 
 }

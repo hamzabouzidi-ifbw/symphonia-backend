@@ -23,14 +23,6 @@ public class SipUserController {
     @Autowired
     private SipUserService sipUserService;
 
-   /* @PostMapping
-    public ResponseEntity<SipProfile> createSipUser(
-            @RequestBody CreateSipUserRequest request,
-            @RequestHeader("Authorization") String token) {
-
-        SipProfile response = sipUserService.createSipUser(request, token);
-        return ResponseEntity.ok(response);
-    }*/
    @PostMapping()
    public ResponseEntity<?> createSipUser(
            @RequestBody CreateSipUserRequest request,

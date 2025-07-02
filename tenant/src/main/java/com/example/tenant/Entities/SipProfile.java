@@ -15,9 +15,6 @@ public class SipProfile {
     private String username;
     private String email;
 
-
-
-    @Column(unique = true)
     private String extension;
 
     @Column(nullable = false)
