@@ -42,5 +42,9 @@ public interface AuthServiceClient {
     @GetMapping("/authentification/users/exists")
     Boolean checkIfUserExists(@RequestParam("email") String email, @RequestHeader("Authorization") String authToken);
 
-
+    @PutMapping("/authentification/users/deactivate-by-tenant/{tenantId}")
+    void deactivateUsersByTenant(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long tenantId
+    );
 }

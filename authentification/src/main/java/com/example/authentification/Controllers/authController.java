@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
@@ -61,24 +62,46 @@ public class authController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody authDto loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // Récupérer le rôle de l'utilisateur
+        // Vérifier d'abord si l'utilisateur existe et est actif
         User user = userService.findByEmail(loginRequest.getEmail());
-        String role = user.getRole().name();  // Obtient le rôle de l'utilisateur
-        String jwt = jwtService.generateToken(loginRequest.getEmail(), role);  // Passe l'email et le rôle
 
-        String message = role.equals("SUPER_ADMIN") ? "Hello Super Admin" : "Hello User";
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", jwt);
-        response.put("role", role);
-        response.put("message", message);
-        response.put("userDetails", user);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Email ou mot de passe incorrect");
+        }
 
-        return ResponseEntity.ok(response);
+        // Vérifier si l'utilisateur est actif
+        if (!user.isActive()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Votre compte est désactivé. Contactez l'administrateur.");
+        }
+
+        // Authentification
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+            );
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Récupérer le rôle de l'utilisateur
+            String role = user.getRole().name();
+            String jwt = jwtService.generateToken(loginRequest.getEmail(), role);
+
+            String message = role.equals("SUPER_ADMIN") ? "Hello Super Admin" : "Hello User";
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", jwt);
+            response.put("role", role);
+            response.put("message", message);
+            response.put("userDetails", user);
+
+            return ResponseEntity.ok(response);
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Email ou mot de passe incorrect");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Une erreur est survenue lors de la connexion");
+        }
     }
 
     @GetMapping("/logout")

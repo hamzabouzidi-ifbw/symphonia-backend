@@ -8,6 +8,8 @@ import com.example.authentification.Repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
+import javax.transaction.Transactional;
+import java.util.List;
 
 
 @Service
@@ -42,11 +44,16 @@ public class UserService  {
         // Sauvegarder dans la base de données
         userRepository.save(user);
     }
-
+    @Transactional
+    public void deactivateUsersByTenant(Long tenantId) {
+        List<User> users = userRepository.findUsersByTenantId(tenantId);
+        users.forEach(user -> user.setActive(false));
+        userRepository.saveAll(users);
+    }
     @PostConstruct
     public void createSuperAdmin() {
-        String superAdminEmail = "raniabensalem53@gmail.com";
-        String defaultPassword = "rania123";
+        String superAdminEmail = "raouia.ben19@gmail.com";
+        String defaultPassword = "raouia123";
 
         if (!userRepository.existsByEmail(superAdminEmail)) {
             // Création du Super Admin

@@ -21,13 +21,27 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
     private Long tenantId;
-
+    private boolean active = true;
 
     // Constructeur par défaut
     public User() {
     }
 
+    public Long getId() {
+        return id;
+    }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 
     // Constructeur avec email, password et role
     public User(String email, String password, Role role) {
