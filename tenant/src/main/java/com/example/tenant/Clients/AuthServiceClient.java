@@ -42,13 +42,7 @@ public interface AuthServiceClient {
     @GetMapping("/authentification/users/exists")
     Boolean checkIfUserExists(@RequestParam("email") String email, @RequestHeader("Authorization") String authToken);
 
-<<<<<<< Updated upstream
-    @PutMapping("/authentification/users/deactivate-by-tenant/{tenantId}")
-    void deactivateUsersByTenant(
-            @RequestHeader("Authorization") String token,
-            @PathVariable Long tenantId
-    );
-=======
+
 
 
         @PutMapping("/authentification/users/deactivate-by-tenant/{tenantId}")
@@ -61,5 +55,5 @@ public interface AuthServiceClient {
                 @RequestHeader("Authorization") String token,
                 @PathVariable Long tenantId);
 
->>>>>>> Stashed changes
+
 }

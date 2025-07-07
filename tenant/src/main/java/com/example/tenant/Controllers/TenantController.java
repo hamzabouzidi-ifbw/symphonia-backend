@@ -94,11 +94,6 @@ public class TenantController {
             @RequestHeader("Authorization") String token,
             @RequestHeader("role") String role) {
 
-<<<<<<< Updated upstream
-  /* @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
-    public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
-        String domain = params.get("domain");
-=======
         if (!"SUPER_ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "You don't have permission to deactivate tenants"));
@@ -131,53 +126,8 @@ public class TenantController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
->>>>>>> Stashed changes
 
-        // Récupère le tenant par son nom de domaine
-        Optional<Tenant> tenantOpt = tenantService.getByDomain(domain);
-        if (tenantOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        Tenant tenant = tenantOpt.get();
-
-        // Construction du XML avec les infos du tenant
-        String xml = """
-        <document type="freeswitch/xml">
-          <section name="directory">
-            <domain name="%s">
-              <user id="%s">
-                <params>
-                  <param name="password" value="1234"/>
-                </params>
-                <variables>
-                  <variable name="accountcode" value="%s"/>
-                  <variable name="context" value="%s"/>
-                  <variable name="email" value="%s"/>
-                  <variable name="phone" value="%s"/>
-                  <variable name="admin_email" value="%s"/>
-                  <variable name="address" value="%s"/>
-                </variables>
-              </user>
-            </domain>
-          </section>
-        </document>
-        """.formatted(
-                tenant.getDomainName(),     // %s -> domaine
-                tenant.getCode(),           // %s -> id (on prend code ici)
-                tenant.getCode(),           // accountcode
-                tenant.getContextName(),    // context
-                tenant.getEmail(),          // email
-                tenant.getPhone(),          // phone
-                tenant.getAdminEmail(),     // admin_email
-                tenant.getAddress()         // address
-        );
-
-        return ResponseEntity.ok(xml);
-    }
-*/
-
-    @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
+   /* @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
     public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
         String domain = params.get("domain");
 
@@ -230,6 +180,98 @@ public class TenantController {
                   <variable name="phone" value="%s"/>
                   <variable name="admin_email" value="%s"/>
                   <variable name="address" value="%s"/>
+
+                  %s
+                </variables>
+              </user>
+            </domain>
+          </section>
+        </document>
+        """.formatted(
+                tenant.getDomainName(),     // %s -> domaine
+                tenant.getCode(),           // %s -> id (on prend code ici)
+                tenant.getCode(),           // accountcode
+                tenant.getContextName(),    // context
+                tenant.getEmail(),          // email
+                tenant.getPhone(),          // phone
+                tenant.getAdminEmail(),     // admin_email
+                tenant.getAddress(),         // address
+
+                usersXml.toString()
+        );
+
+        return ResponseEntity.ok(xml);
+    }*/
+
+
+    @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
+    public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
+        String domain = params.get("domain");
+
+        if (domain == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Optional<Tenant> tenantOpt = tenantService.getByDomain(domain);
+        if (tenantOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Tenant tenant = tenantOpt.get();
+
+        // Récupérer tous les utilisateurs SIP du tenant
+        List<SipProfile> users = userSipService.getUsersByTenantId(tenant.getId());
+
+        StringBuilder usersXml = new StringBuilder();
+
+        for (SipProfile user : users) {
+            usersXml.append("""
+            <user id="%s">
+              <params>
+                <param name="password" value="%s"/>
+              </params>
+              <variables>
+                <variable name="username" value="%s"/>
+                <variable name="email" value="%s"/>
+                <variable name="extension" value="%s"/>
+                <variable name="domainName" value="%s"/>
+                <variable name="tenantId" value="%s"/>
+                <variable name="licenceDefinitionId" value="%s"/>
+                <variable name="creationDate" value="%s"/>
+                <variable name="active" value="%s"/>
+              </variables>
+            </user>
+            """.formatted(
+                    user.getUsername(),               // user id
+                    user.getPassword(),               // param: SIP password
+                    user.getUsername(),
+                    user.getEmail(),
+                    user.getExtension(),
+                    user.getDomainName(),
+                    String.valueOf(user.getTenantId()),
+                    user.getLicenceDefinitionId() != null ? user.getLicenceDefinitionId().toString() : "",
+                    user.getCreationDate() != null ? user.getCreationDate().toString() : "",
+                    user.isActive()
+            ));
+        }
+
+        // XML complet
+        // Construction du XML avec les infos du tenant
+        String xml = """
+        <document type="freeswitch/xml">
+          <section name="directory">
+            <domain name="%s">
+              <user id="%s">
+                <params>
+                  <param name="password" value="1234"/>
+                </params>
+                <variables>
+                  <variable name="accountcode" value="%s"/>
+                  <variable name="context" value="%s"/>
+                  <variable name="email" value="%s"/>
+                  <variable name="phone" value="%s"/>
+                  <variable name="admin_email" value="%s"/>
+                  <variable name="address" value="%s"/>
                   
                   %s
                 </variables>
@@ -253,9 +295,7 @@ public class TenantController {
         return ResponseEntity.ok(xml);
     }
 
-
-
-    @GetMapping(value = "/freeswitch/dialplan", produces = "application/xml")
+   /* @GetMapping(value = "/freeswitch/dialplan", produces = "application/xml")
     public ResponseEntity<String> getDialplan(@RequestParam Map<String, String> params) {
         String context = params.get("context");
         if (context == null) return ResponseEntity.badRequest().build();
@@ -279,6 +319,54 @@ public class TenantController {
         return ResponseEntity.ok(xml);
     }
 
+
+    @GetMapping(value = "/freeswitch/dialplan", produces = "application/xml")
+    public ResponseEntity<String> getDialplan(@RequestParam Map<String, String> params) {
+        String context = params.get("context");
+        if (context == null) return ResponseEntity.badRequest().build();
+
+        // Récupérer les utilisateurs SIP actifs pour le tenant/context donné
+        // Suppose que tu as une méthode pour récupérer les utilisateurs par contexte ou tenant
+        // Par exemple, ici on récupère tous les utilisateurs et on filtre par contexte (à adapter selon ta logique)
+        List<SipProfile> users = userSipService.getUsersByContext(context);
+
+        if (users.isEmpty()) {
+            // Pas d'utilisateur dans ce contexte, retourne un dialplan vide ou 404
+            return ResponseEntity.ok("""
+            <document type="freeswitch/xml">
+              <section name="dialplan">
+                <context name="%s"/>
+              </section>
+            </document>
+            """.formatted(context));
+        }
+
+        // Extraire toutes les extensions des utilisateurs actifs
+        List<String> extensions = users.stream()
+                .filter(SipProfile::isActive)         // filtrer uniquement actifs
+                .map(SipProfile::getExtension)
+                .toList();
+
+        // Construire une expression regex du type ^(ext1|ext2|ext3)$
+        String regex = "^(" + String.join("|", extensions) + ")$";
+
+        String xml = """
+    <document type="freeswitch/xml">
+      <section name="dialplan">
+        <context name="%s">
+          <extension name="internal_call">
+            <condition field="destination_number" expression="%s">
+              <action application="bridge" data="sofia/internal/${destination_number}@${domain_name}"/>
+            </condition>
+          </extension>
+        </context>
+      </section>
+    </document>
+    """.formatted(context, regex);
+
+        return ResponseEntity.ok(xml);
+    }
+*/
     //Cette méthode sert à fournir dynamiquement la configuration XML de FreeSWITCH pour un fichier spécifique
     @GetMapping(value = "/freeswitch/configuration", produces = "application/xml")
     public ResponseEntity<String> getConfiguration(@RequestParam Map<String, String> params) {
@@ -317,23 +405,5 @@ public class TenantController {
     """;
         return ResponseEntity.ok(xml);
     }
-    @PutMapping("/{tenantId}/deactivate")
-    public ResponseEntity<?> deactivateTenant(
-            @PathVariable Long tenantId,
-            @RequestHeader("Authorization") String token,
-            @RequestHeader("role") String role) {
 
-        if (!"SUPER_ADMIN".equals(role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "You don't have permission to deactivate tenants"));
-        }
-
-        try {
-            tenantService.deactivateTenant(tenantId, token);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
 }

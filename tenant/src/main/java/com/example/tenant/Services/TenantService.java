@@ -272,10 +272,7 @@ public class TenantService {
     public Optional<Tenant> getByContextName(String contextName) {
         return tenantRepository.findByContextName(contextName);
     }
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
     @Transactional
     public void deactivateTenant(Long tenantId, String token) {
         Tenant tenant = tenantRepository.findById(tenantId)
@@ -288,10 +285,7 @@ public class TenantService {
         // 2. Désactiver tous les utilisateurs associés à ce tenant
         try {
             authServiceClient.deactivateUsersByTenant(token, tenantId);
-<<<<<<< Updated upstream
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deactivate users for tenant", e);
-=======
+
         } catch (FeignException e) {
             throw new RuntimeException("Failed to deactivate users for tenant: " + e.contentUTF8(), e);
         }
@@ -309,7 +303,7 @@ public class TenantService {
             authServiceClient.activateUsersByTenant(token, tenantId);
         } catch (FeignException e) {
             throw new RuntimeException("Failed to activate users for tenant: " + e.contentUTF8(), e);
->>>>>>> Stashed changes
+
         }
     }
 }
