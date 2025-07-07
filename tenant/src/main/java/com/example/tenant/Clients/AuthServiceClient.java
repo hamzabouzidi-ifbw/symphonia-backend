@@ -1,7 +1,7 @@
 package com.example.tenant.Clients;
 
 import com.example.tenant.Dto.RegisterUserRequest;
-import com.example.tenant.Entities.SipProfile;
+/*import com.example.tenant.Entities.SipProfile;*/
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,9 +42,24 @@ public interface AuthServiceClient {
     @GetMapping("/authentification/users/exists")
     Boolean checkIfUserExists(@RequestParam("email") String email, @RequestHeader("Authorization") String authToken);
 
+<<<<<<< Updated upstream
     @PutMapping("/authentification/users/deactivate-by-tenant/{tenantId}")
     void deactivateUsersByTenant(
             @RequestHeader("Authorization") String token,
             @PathVariable Long tenantId
     );
+=======
+
+
+        @PutMapping("/authentification/users/deactivate-by-tenant/{tenantId}")
+        void deactivateUsersByTenant(
+                @RequestHeader("Authorization") String token,
+                @PathVariable Long tenantId);
+
+        @PutMapping("/authentification/users/activate-by-tenant/{tenantId}")
+        void activateUsersByTenant(
+                @RequestHeader("Authorization") String token,
+                @PathVariable Long tenantId);
+
+>>>>>>> Stashed changes
 }

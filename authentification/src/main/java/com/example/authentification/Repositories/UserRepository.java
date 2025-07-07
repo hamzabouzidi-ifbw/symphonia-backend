@@ -15,6 +15,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     User findByTenantId(Long tenantId);
     List<User> findUsersByTenantId(Long tenantId);
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     //User findBySipUserId(Long tenantId);
 
     //User findBySipUserId(Long sipUserId);

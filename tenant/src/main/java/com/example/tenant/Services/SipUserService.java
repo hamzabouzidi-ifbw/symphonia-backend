@@ -40,6 +40,8 @@ public class SipUserService {
 
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private ExtensionService extensionService;
 
      /*  @Transactional
        public SipProfile createSipUser(CreateSipUserRequest request) {
@@ -141,14 +143,27 @@ public class SipUserService {
         if (matchingLicence.getUsedUsers() >= matchingLicence.getMaxUsers()) {
             throw new RuntimeException("Quota de licence dépassé");
         }
-
+        String extension;
+        if (request.getExtension() != null && !request.getExtension().isEmpty()) {
+            // Vérifier si l'extension spécifiée est valide pour ce tenant
+            if (!extensionService.isExtensionValidForTenant(request.getTenantId(), request.getExtension())) {
+                throw new RuntimeException("Extension invalide pour ce tenant");
+            }
+            if (sipProfileRepository.existsByExtension(request.getExtension())) {
+                throw new RuntimeException("Extension déjà utilisée");
+            }
+            extension = request.getExtension();
+        } else {
+            // Générer automatiquement la prochaine extension disponible
+            extension = extensionService.generateNextExtension(request.getTenantId());
+        }
         // 3. Création SIP
         String password = UUID.randomUUID().toString().substring(0, 10);
         SipProfile sipProfile = new SipProfile();
         sipProfile.setUsername(request.getUsername());
         sipProfile.setEmail(request.getEmail());
         sipProfile.setPassword(password);
-        sipProfile.setExtension(request.getExtension());
+        sipProfile.setExtension(extension);
         sipProfile.setTenantId(request.getTenantId());
         sipProfile.setDomainName(tenant.getDomainName());
         sipProfile.setLicenceDefinitionId(request.getLicenceDefinitionId());

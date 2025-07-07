@@ -163,5 +163,23 @@ public class authController {
         boolean exists = userRepository.existsByEmail(email);
         return ResponseEntity.ok(exists);
     }
+    @PutMapping("/users/deactivate-by-tenant/{tenantId}")
+    public ResponseEntity<Void> deactivateUsersByTenant(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long tenantId) {
+
+        // Ajoutez une vérification du token si nécessaire
+        userService.deactivateUsersByTenant(tenantId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/users/activate-by-tenant/{tenantId}")
+    public ResponseEntity<Void> activateUsersByTenant(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long tenantId) {
+
+        userService.activateUsersByTenant(tenantId);
+        return ResponseEntity.ok().build();
+    }
 
 }

@@ -88,10 +88,50 @@ public class TenantController {
         return tenant.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    @PutMapping("/{tenantId}/deactivate")
+    public ResponseEntity<?> deactivateTenant(
+            @PathVariable Long tenantId,
+            @RequestHeader("Authorization") String token,
+            @RequestHeader("role") String role) {
 
+<<<<<<< Updated upstream
   /* @GetMapping(value = "/freeswitch/directory", produces = "application/xml")
     public ResponseEntity<String> getDirectory(@RequestParam Map<String, String> params) {
         String domain = params.get("domain");
+=======
+        if (!"SUPER_ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You don't have permission to deactivate tenants"));
+        }
+
+        try {
+            tenantService.deactivateTenant(tenantId, token);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    @PutMapping("/{tenantId}/activate")
+    public ResponseEntity<?> activateTenant(
+            @PathVariable Long tenantId,
+            @RequestHeader("Authorization") String token,
+            @RequestHeader("role") String role) {
+
+        if (!"SUPER_ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You don't have permission to deactivate tenants"));
+        }
+
+        try {
+            tenantService.activateTenant(tenantId, token);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+>>>>>>> Stashed changes
 
         // Récupère le tenant par son nom de domaine
         Optional<Tenant> tenantOpt = tenantService.getByDomain(domain);

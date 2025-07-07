@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface SipProfileRepository extends JpaRepository<SipProfile, Long> {
 
    Optional<SipProfile> findByExtension(String extension);
+ boolean existsByExtension(String extension);
+
 
     List<SipProfile> findByTenantId(Long tenantId);
 

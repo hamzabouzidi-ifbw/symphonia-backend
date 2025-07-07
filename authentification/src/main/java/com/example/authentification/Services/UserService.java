@@ -47,9 +47,25 @@ public class UserService  {
     @Transactional
     public void deactivateUsersByTenant(Long tenantId) {
         List<User> users = userRepository.findUsersByTenantId(tenantId);
+<<<<<<< Updated upstream
         users.forEach(user -> user.setActive(false));
         userRepository.saveAll(users);
     }
+=======
+        if (users.isEmpty()) {
+            throw new RuntimeException("No users found for tenant ID: " + tenantId);
+        }
+        users.forEach(user -> user.setActive(false));
+        userRepository.saveAll(users);
+    }
+
+    @Transactional
+    public void activateUsersByTenant(Long tenantId) {
+        List<User> users = userRepository.findUsersByTenantId(tenantId);
+        users.forEach(user -> user.setActive(true));
+        userRepository.saveAll(users);
+    }
+>>>>>>> Stashed changes
     @PostConstruct
     public void createSuperAdmin() {
         String superAdminEmail = "raouia.ben19@gmail.com";
