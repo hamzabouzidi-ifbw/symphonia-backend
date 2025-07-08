@@ -2,6 +2,7 @@ package com.example.tenant.Dto;
 
 
 import javax.persistence.Column;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 public class CreateTenantRequest {
@@ -24,7 +25,37 @@ public class CreateTenantRequest {
 
 
     private String adminEmail;
+    @NotNull
+    private Integer extensionPrefix; // Préfixe numérique (ex: 1, 2, etc.)
+    private String timezone="Tunisia";
+    // Optionnel - valeur par défaut 3
+    private Integer extensionLength = 3;
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
+    }
+
     private List<LicenceAssignmentRequest> licences;
+
+    public @NotNull Integer getExtensionPrefix() {
+        return extensionPrefix;
+    }
+
+    public void setExtensionPrefix(@NotNull Integer extensionPrefix) {
+        this.extensionPrefix = extensionPrefix;
+    }
+
+    public Integer getExtensionLength() {
+        return extensionLength;
+    }
+
+    public void setExtensionLength(Integer extensionLength) {
+        this.extensionLength = extensionLength;
+    }
 
     public String getTenantName() {
         return tenantName;

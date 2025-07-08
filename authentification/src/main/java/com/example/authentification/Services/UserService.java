@@ -50,6 +50,13 @@ public class UserService  {
         users.forEach(user -> user.setActive(false));
         userRepository.saveAll(users);
     }
+
+    @Transactional
+    public void activateUsersByTenant(Long tenantId) {
+        List<User> users = userRepository.findUsersByTenantId(tenantId);
+        users.forEach(user -> user.setActive(true));
+        userRepository.saveAll(users);
+    }
     @PostConstruct
     public void createSuperAdmin() {
         String superAdminEmail = "raniabensalem53@gmail.com";

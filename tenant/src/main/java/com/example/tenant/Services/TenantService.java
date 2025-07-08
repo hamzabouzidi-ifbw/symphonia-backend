@@ -5,6 +5,7 @@ import com.example.tenant.Clients.LicenceServiceClient;
 import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Repositories.TenantRepository;
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -67,12 +68,17 @@ public class TenantService {
             throw new RuntimeException("Un tenant avec cet email existe déjà.");
         if (tenantRepository.findByAdminEmail(request.getAdminEmail()).isPresent())
             throw new RuntimeException("Cet email admin est déjà utilisé par un autre tenant.");
-
+        if (tenantRepository.existsByExtensionPrefix(request.getExtensionPrefix())) {
+            throw new RuntimeException("Ce préfixe d'extension est déjà utilisé par un autre tenant");
+        }
         String domainName = request.getTenantName() + "@symphonia.com";
         String contextName = request.getTenantName() + "_context";
         String code = request.getTenantName() + "-" + String.format("%03d", new Random().nextInt(1000));
 
         Tenant tenant = new Tenant();
+        tenant.setExtensionPrefix(request.getExtensionPrefix()); // Doit être fourni dans la requête
+        tenant.setExtensionLength(3); // Ou le faire configurable via request
+        tenant.setNextExtensionNumber(1);
         tenant.setTenantName(request.getTenantName());
         tenant.setAddress(request.getAddress());
         tenant.setEmail(request.getEmail());
@@ -149,7 +155,6 @@ public class TenantService {
         return savedTenant;
     }
 
-
     public List<TenantWithLicencesResponse> getAllTenantsWithLicences(String token) {
         List<Tenant> tenants = tenantRepository.findAll();
         List<TenantWithLicencesResponse> result = new ArrayList<>();
@@ -213,6 +218,7 @@ public class TenantService {
 
 
     }
+
 
     public void deleteTenant(Long tenantId, String token) {
         Tenant tenant = tenantRepository.findById(tenantId)
@@ -279,8 +285,25 @@ public class TenantService {
         // 2. Désactiver tous les utilisateurs associés à ce tenant
         try {
             authServiceClient.deactivateUsersByTenant(token, tenantId);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deactivate users for tenant", e);
+
+        } catch (FeignException e) {
+            throw new RuntimeException("Failed to deactivate users for tenant: " + e.contentUTF8(), e);
+        }
+    }
+
+    @Transactional
+    public void activateTenant(Long tenantId, String token) {
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new RuntimeException("Tenant not found"));
+
+        tenant.setActive(true);
+        tenantRepository.save(tenant);
+
+        try {
+            authServiceClient.activateUsersByTenant(token, tenantId);
+        } catch (FeignException e) {
+            throw new RuntimeException("Failed to activate users for tenant: " + e.contentUTF8(), e);
+
         }
     }
 }

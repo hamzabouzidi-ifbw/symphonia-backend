@@ -12,15 +12,16 @@ import java.util.UUID;
 @Repository
 public interface SipProfileRepository extends JpaRepository<SipProfile, Long> {
 
-   Optional<SipProfile> findByExtension(String extension);
+ Optional<SipProfile> findByExtension(String extension);
+ boolean existsByExtension(String extension);
 
-    List<SipProfile> findByTenantId(Long tenantId);
 
-    List<SipProfile> findAllByTenantId(Long tenantId);
+ List<SipProfile> findByTenantId(Long tenantId);
 
-    Optional<SipProfile> findByUsername(String userName);
-    Optional<SipProfile> findByEmail(String email);
-    boolean existsByEmail(String email);
+ List<SipProfile> findAllByTenantId(Long tenantId);
 
+ Optional<SipProfile> findByUsername(String userName);
+ Optional<SipProfile> findByEmail(String email);
+ boolean existsByEmail(String email);
 
 }

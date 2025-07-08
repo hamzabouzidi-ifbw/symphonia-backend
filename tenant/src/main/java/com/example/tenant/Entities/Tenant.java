@@ -36,10 +36,57 @@ public class Tenant {
 
     private boolean active = true;    // Pour activer/désactiver un tenant
     private String adminEmail;
+    private String timezone="Tunisia";
+    @Column(nullable = false)
+    private Integer extensionPrefix; // Préfixe numérique (ex: 1 pour tenant A)
+
+    @Column(nullable = false)
+    private Integer nextExtensionNumber = 1; // Prochain numéro à attribuer (commence à 1)
+
+    @Column(nullable = false)
+    private Integer extensionLength = 3;
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
+    }
 
 
+    public Integer getExtensionPrefix() {
+        return extensionPrefix;
+    }
 
-    // Getters & Setters
+    public void setExtensionPrefix(Integer extensionPrefix) {
+        this.extensionPrefix = extensionPrefix;
+    }
+
+    public Integer getNextExtensionNumber() {
+        return nextExtensionNumber;
+    }
+
+    public void setNextExtensionNumber(Integer nextExtensionNumber) {
+        this.nextExtensionNumber = nextExtensionNumber;
+    }
+
+    public Integer getExtensionLength() {
+        return extensionLength;
+    }
+
+    public void setExtensionLength(Integer extensionLength) {
+        this.extensionLength = extensionLength;
+    }
 
     public Long getId() {
         return id;
