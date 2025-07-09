@@ -13,14 +13,9 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
     Optional<Tenant> findByDomainName(String domainName);
     Optional<Tenant> findByEmail(String email);
     Optional<Tenant> findByAdminEmail(String adminEmail);
-    Optional<Tenant> findByCode(String code);
-
-    boolean existsByCode(String code);
-
     Optional<Tenant> findByTenantNameAndIdNot(String tenantName, Long id);
     Optional<Tenant> findByDomainNameAndIdNot(String domainName, Long id);
     Optional<Tenant> findByEmailAndIdNot(String email, Long id);
     Optional<Tenant> findByContextName(String contextName);
-
     boolean existsByExtensionPrefix(Integer extensionPrefix);
 }

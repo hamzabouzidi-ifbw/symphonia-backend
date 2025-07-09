@@ -7,7 +7,6 @@ import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Repositories.SipProfileRepository;
 import com.example.tenant.Repositories.TenantRepository;
-import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -18,7 +17,6 @@ import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class SipUserService {
@@ -209,21 +207,12 @@ public class SipUserService {
         return sipProfileRepository.findById(id);
     }
 
-    public List<SipProfile> getByTenant(Tenant tenant) {
-        return sipProfileRepository.findAll()
-                .stream().filter(u -> u.getTenantId().equals(tenant))
-                .collect(Collectors.toList());
+    public List<SipProfile> getSipUsersByDomain(String domain) {
+        return sipProfileRepository.findByDomainNameAndActiveTrue(domain);
     }
 
-    public List<SipProfile> getUsersByTenantId(Long tenantId) {
-        return sipProfileRepository.findByTenantId(tenantId);
-    }
-
-    public List<SipProfile> getUsersByContext(String context) {
-        // Si tu stockes le contexte dans tenant, récupère le tenant via contexte, puis ses utilisateurs
-        Tenant tenant = tenantRepository.findByContextName(context)
-                .orElseThrow(() -> new RuntimeException("Tenant not found for context: " + context));
-        return sipProfileRepository.findByTenantId(tenant.getId());
+    public Optional<SipProfile> findByDomainAndUsername(String domain, String username) {
+        return sipProfileRepository.findByDomainNameAndUsernameAndActiveTrue(domain, username);
     }
 
 }

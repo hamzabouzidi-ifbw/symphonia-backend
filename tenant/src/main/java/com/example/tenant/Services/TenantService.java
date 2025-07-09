@@ -14,15 +14,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
-
-import java.nio.file.*;
 import java.io.*;
 @Service
 public class TenantService {
@@ -44,20 +37,6 @@ public class TenantService {
 
     @Value("${auth.service.url}")
     private String authServiceUrl;
-
-    private String generateTenantCode(String name) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] hash = md.digest(name.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
-            StringBuilder code = new StringBuilder("T-");
-            for (int i = 0; i < 3; i++) {
-                code.append(String.format("%02X", hash[i]));
-            }
-            return code.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Erreur lors de la génération du code tenant", e);
-        }
-    }
 
 
     @Transactional
@@ -123,34 +102,6 @@ public class TenantService {
             throw new RuntimeException("Échec de la création de l'utilisateur admin. Le tenant a été supprimé.", e);
         }
 
-        // 👉 Appel à FreeSWITCH via HTTP (si tu veux déclencher un cache/update)
-
-        /*Ce bloc de code Java effectue un appel HTTP vers un endpoint local (http://localhost:8083/...)
-         afin de notifier FreeSWITCH (un serveur de téléphonie open source)
-         pour déclencher une mise à jour ou une régénération du XML
-                (probablement un fichier de configuration ou d'annuaire).*/
-        try {
-
-
-            // Appelle ton propre endpoint pour déclencher la génération XML
-            URL url = new URL("http://localhost:8083/tenant/freeswitch/directory?domain=" + domainName);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Accept", "application/xml");
-
-            // Ajouter le token d’authentification dans l’en-tête Authorization
-            if (token != null && !token.isEmpty()) {
-                conn.setRequestProperty("Authorization", token);
-            }
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                System.out.println("Erreur lors de la notification FreeSWITCH: " + responseCode);
-            }
-            conn.disconnect();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         return savedTenant;
     }
@@ -212,13 +163,13 @@ public class TenantService {
 
         // ✅ Appel pour notifier FreeSWITCH
         //notifyFreeSWITCHDirectoryUpdate(updatedTenant.getDomainName(), token);
+        notifyFreeSwitchUpdate(updatedTenant.getDomainName());
 
         return updatedTenant;
 
 
 
     }
-
 
     public void deleteTenant(Long tenantId, String token) {
         Tenant tenant = tenantRepository.findById(tenantId)
@@ -236,6 +187,7 @@ public class TenantService {
 
             // ✅ Appel pour notifier FreeSWITCH après suppression
            // notifyFreeSWITCHDirectoryUpdate(tenant.getDomainName(), token);
+            notifyFreeSwitchUpdate(tenant.getDomainName());
 
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la suppression du tenant: " + e.getMessage());
@@ -246,32 +198,6 @@ public class TenantService {
         return tenantRepository.findByDomainName(domain);
     }
 
-    private void notifyFreeSWITCHDirectoryUpdate(String domainName, String token) {
-        try {
-            URL url = new URL("http://localhost:8083/tenant/freeswitch/directory?domain=" + domainName);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Accept", "application/xml");
-
-            if (token != null && !token.isEmpty()) {
-                conn.setRequestProperty("Authorization", token);
-            }
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                System.out.println("Erreur lors de la notification FreeSWITCH: " + responseCode);
-            }
-
-            conn.disconnect();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public Optional<Tenant> getByContextName(String contextName) {
-        return tenantRepository.findByContextName(contextName);
-    }
 
     @Transactional
     public void deactivateTenant(Long tenantId, String token) {
@@ -304,6 +230,16 @@ public class TenantService {
         } catch (FeignException e) {
             throw new RuntimeException("Failed to activate users for tenant: " + e.contentUTF8(), e);
 
+        }
+    }
+
+    //freeswitch
+    private void notifyFreeSwitchUpdate(String domain) {
+        try {
+            Runtime.getRuntime().exec("fs_cli -x 'reloadxml'");
+            System.out.println("FreeSWITCH XML reload triggered for domain: " );
+        } catch (IOException e) {
+            System.out.println("Failed to reload FreeSWITCH XML");
         }
     }
 }

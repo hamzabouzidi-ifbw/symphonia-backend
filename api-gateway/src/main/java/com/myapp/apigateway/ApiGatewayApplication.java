@@ -29,6 +29,8 @@ public class ApiGatewayApplication {
                         .uri("http://localhost:8086/"))
                 .route("sip-users", r->r.path("/sip-users/**")
                         .uri("http://localhost:8086/"))
+                .route("freeswitch", r->r.path("/freeswitch/xml/**")
+                        .uri("http://localhost:8086/"))
                 .build();
     }
 
