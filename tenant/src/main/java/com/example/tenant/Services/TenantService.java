@@ -256,4 +256,28 @@ public class TenantService {
         return tenantRepository.findAll(spec);
     }
 
+
+    public int getTotalAvailableUsers(String token) {
+        List<Tenant> tenants = tenantRepository.findAll();
+        int totalAvailableUsers = 0;
+
+        for (Tenant tenant : tenants) {
+            try {
+                List<LicenceAssignmentRequest> licences = licenceServiceClient.getLicencesByTenant(token, tenant.getId());
+                for (LicenceAssignmentRequest licence : licences) {
+                    int available = licence.getMaxUsers() - licence.getUsedUsers();
+                    totalAvailableUsers += Math.max(available, 0); // On évite les valeurs négatives
+                }
+            } catch (Exception e) {
+                // Log, ignorer ou relancer selon votre stratégie
+                System.err.println("Erreur lors de la récupération des licences pour le tenant " + tenant.getId());
+            }
+        }
+
+        return totalAvailableUsers;
+    }
+
+
+
+
 }

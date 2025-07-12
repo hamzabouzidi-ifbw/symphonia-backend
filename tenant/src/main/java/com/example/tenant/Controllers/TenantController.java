@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -143,4 +144,16 @@ public class TenantController {
     ) {
         return tenantService.searchTenants(name, context, code, prefix, createdAfter, timezone);
     }
+
+
+
+    // ✅ Total d'utilisateurs disponibles selon les licences
+    @GetMapping("/available-users")
+    public ResponseEntity<Integer> getTotalAvailableUsers(@RequestHeader("Authorization") String token) {
+        int total = tenantService.getTotalAvailableUsers(token);
+        return ResponseEntity.ok(total);
+    }
+
+
+
 }
