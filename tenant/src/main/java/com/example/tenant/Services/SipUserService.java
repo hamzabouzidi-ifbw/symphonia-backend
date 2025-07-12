@@ -207,10 +207,6 @@ public class SipUserService {
         return sipProfileRepository.findById(id);
     }
 
-    public List<SipProfile> getSipUsersByDomain(String domain) {
-        return sipProfileRepository.findByDomainNameAndActiveTrue(domain);
-    }
-
     public Optional<SipProfile> findByDomainAndUsername(String domain, String username) {
         return sipProfileRepository.findByDomainNameAndUsernameAndActiveTrue(domain, username);
     }
