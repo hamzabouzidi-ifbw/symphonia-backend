@@ -7,27 +7,17 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "tenants")
 public class Tenant {
-
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @Column(nullable = false, unique = true)
     private String code;
-
-
     private String tenantName;       // Nom de l'entreprise ou organisation
     private String contextName;
     private String email;             // Email de contact principal
-
     private String phone;             // Numéro de téléphone
-
     private String address;           // Adresse
-
-
     private String domainName;           // domain
-
     private boolean active = true;    // Pour activer/désactiver un tenant
     private String adminEmail;
     private String timezone="Tunisia";
@@ -40,6 +30,9 @@ public class Tenant {
     @Column(nullable = false)
     private Integer extensionLength = 3;
     private LocalDateTime createdAt = LocalDateTime.now();
+
+
+
 
     public LocalDateTime getCreatedAt() {
         return createdAt;

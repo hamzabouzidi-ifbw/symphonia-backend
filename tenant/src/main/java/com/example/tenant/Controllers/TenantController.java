@@ -7,11 +7,13 @@ import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.SipUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -129,4 +131,16 @@ public class TenantController {
         }
     }
 
+
+    @GetMapping("/search")
+    public List<Tenant> search(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String context,
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) Integer prefix,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
+            @RequestParam(required = false) String timezone
+    ) {
+        return tenantService.searchTenants(name, context, code, prefix, createdAfter, timezone);
+    }
 }

@@ -8,12 +8,14 @@ import com.example.tenant.Repositories.TenantRepository;
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import java.io.*;
@@ -242,4 +244,16 @@ public class TenantService {
             System.out.println("Failed to reload FreeSWITCH XML");
         }
     }
+
+    public List<Tenant> searchTenants(String name, String context, String code, Integer prefix, LocalDateTime createdAfter, String timezone) {
+        Specification<Tenant> spec = Specification.where(TenantSpecification.tenantNameContains(name))
+                .and(TenantSpecification.contextNameContains(context))
+                .and(TenantSpecification.codeContains(code))
+                .and(TenantSpecification.hasPrefix(prefix))
+                .and(TenantSpecification.createdAfter(createdAfter))
+                .and(TenantSpecification.hasTimezone(timezone));
+
+        return tenantRepository.findAll(spec);
+    }
+
 }
