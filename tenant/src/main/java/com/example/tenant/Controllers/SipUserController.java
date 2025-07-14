@@ -6,6 +6,7 @@ import com.example.tenant.Dto.SipUserCreationResponse;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
+import com.example.tenant.Repositories.SipProfileRepository;
 import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -24,6 +26,8 @@ import java.util.UUID;
 public class SipUserController {
     @Autowired
     private SipUserService sipUserService;
+    @Autowired
+    private SipProfileRepository sipProfileRepository;
     @Autowired
     private DidNumberService didNumberService;
 
@@ -86,11 +90,35 @@ public class SipUserController {
     }
 
 
-    @PostMapping("/dids")
+  /*  @PostMapping("/dids")
     public ResponseEntity<DidNumber> createDid(@RequestBody DidNumber request) {
         return ResponseEntity.ok(didNumberService.createDid(request));
-    }
+    }*/
 
+    @PostMapping("/dids")
+    public ResponseEntity<?> createDid(@PathVariable Long sipUserId, @RequestBody Map<String, String> payload) {
+        String didNumber = payload.get("didNumber");
+
+        if (didNumber == null || didNumber.isEmpty()) {
+            return ResponseEntity.badRequest().body("Le numéro DID est requis.");
+        }
+
+        Optional<SipProfile> sipUserOpt = sipProfileRepository.findById(sipUserId);
+        if (!sipUserOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur SIP non trouvé.");
+        }
+
+        SipProfile sipUser = sipUserOpt.get();
+
+        DidNumber did = new DidNumber();
+        did.setDidNumber(didNumber);
+        did.setExtension(sipUser.getExtension());
+        did.setSipProfileId(sipUser.getId());
+
+        DidNumber saved = didNumberService.createDid(did);
+
+        return ResponseEntity.ok(saved);
+    }
 
 
 
