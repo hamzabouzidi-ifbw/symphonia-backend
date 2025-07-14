@@ -24,5 +24,6 @@ public interface SipProfileRepository extends JpaRepository<SipProfile, Long> {
  List<SipProfile> findByDomainNameAndActiveTrue(String domainName);
 
  Optional<SipProfile> findByDomainNameAndUsernameAndActiveTrue(String domainName, String username);
+ Optional<SipProfile> findByExtensionAndId(String extension, Long id);
 
 }

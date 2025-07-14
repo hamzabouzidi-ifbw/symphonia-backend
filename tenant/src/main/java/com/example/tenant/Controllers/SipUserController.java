@@ -5,7 +5,9 @@ import com.example.tenant.Dto.CreateTenantRequest;
 import com.example.tenant.Dto.SipUserCreationResponse;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
+import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Services.SipUserService;
+import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,8 @@ import java.util.UUID;
 public class SipUserController {
     @Autowired
     private SipUserService sipUserService;
+    @Autowired
+    private DidNumberService didNumberService;
 
    @PostMapping()
    public ResponseEntity<?> createSipUser(
@@ -80,6 +84,13 @@ public class SipUserController {
                     .body("Erreur lors de la suppression du SIP user: " + e.getMessage());
         }
     }
+
+
+    @PostMapping("/dids")
+    public ResponseEntity<DidNumber> createDid(@RequestBody DidNumber request) {
+        return ResponseEntity.ok(didNumberService.createDid(request));
+    }
+
 
 
 
