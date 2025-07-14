@@ -154,6 +154,10 @@ public class TenantController {
         return ResponseEntity.ok(total);
     }
 
-
+    @GetMapping("/names")
+    public ResponseEntity<List<String>> getAllTenantNames() {
+        List<String> tenantNames = tenantService.getAllTenantNames();
+        return ResponseEntity.ok(tenantNames);
+    }
 
 }

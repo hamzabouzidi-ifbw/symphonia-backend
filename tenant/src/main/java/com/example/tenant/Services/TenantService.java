@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import java.io.*;
+import java.util.stream.Collectors;
+
 @Service
 public class TenantService {
 
@@ -278,6 +280,10 @@ public class TenantService {
     }
 
 
-
+    public List<String> getAllTenantNames() {
+        return tenantRepository.findAll().stream()
+                .map(Tenant::getTenantName)
+                .collect(Collectors.toList());
+    }
 
 }
