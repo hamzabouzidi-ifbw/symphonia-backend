@@ -31,25 +31,25 @@ public class SipUserController {
     @Autowired
     private DidNumberService didNumberService;
 
-   @PostMapping()
-   public ResponseEntity<?> createSipUser(
-           @RequestBody CreateSipUserRequest request,
-           @RequestHeader(value = "role", required = false) String role) {
+    @PostMapping()
+    public ResponseEntity<?> createSipUser(
+            @RequestBody CreateSipUserRequest request,
+            @RequestHeader(value = "role", required = false) String role) {
 
-       if (!"SUPER_ADMIN".equals(role)) {
-           return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                   .body(Map.of("error", "You do not have permission to create a tenant."));
-       }
+        if (!"SUPER_ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You do not have permission to create a tenant."));
+        }
 
-       try {
-           SipProfile profile = sipUserService.createSipUser(request);
-           return ResponseEntity.ok(profile);
-       } catch (RuntimeException e) {
-           // Tu peux ici affiner le code selon le message ou type d'exception
-           return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                   .body(Map.of("error", e.getMessage()));
-       }
-   }
+        try {
+            SipProfile profile = sipUserService.createSipUser(request);
+            return ResponseEntity.ok(profile);
+        } catch (RuntimeException e) {
+            // Tu peux ici affiner le code selon le message ou type d'exception
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 
 
     @PutMapping("/{id}")
@@ -95,32 +95,32 @@ public class SipUserController {
         return ResponseEntity.ok(didNumberService.createDid(request));
     }*/
 
-    @PostMapping("/dids")
-    public ResponseEntity<?> createDid(@PathVariable Long sipUserId, @RequestBody Map<String, String> payload) {
-        String didNumber = payload.get("didNumber");
+    @PostMapping("/{sipUserId}/dids")
+    public ResponseEntity<?> assignDidToUser(
+            @PathVariable Long sipUserId,
+            @RequestBody Map<String, String> payload) {
 
+        String didNumber = payload.get("didNumber");
         if (didNumber == null || didNumber.isEmpty()) {
             return ResponseEntity.badRequest().body("Le numéro DID est requis.");
         }
 
         Optional<SipProfile> sipUserOpt = sipProfileRepository.findById(sipUserId);
-        if (!sipUserOpt.isPresent()) {
+        if (sipUserOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur SIP non trouvé.");
         }
 
-        SipProfile sipUser = sipUserOpt.get();
-
         DidNumber did = new DidNumber();
         did.setDidNumber(didNumber);
-        did.setExtension(sipUser.getExtension());
-        did.setSipProfileId(sipUser.getId());
+        did.setSipProfile(sipUserOpt.get());
 
-        DidNumber saved = didNumberService.createDid(did);
-
-        return ResponseEntity.ok(saved);
+        try {
+            DidNumber saved = didNumberService.createDid(did);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
-
-
 
 
 }
