@@ -1,8 +1,12 @@
 package com.example.tenant.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 
 @Entity
 @Table(name = "sip_profiles")
@@ -33,14 +37,12 @@ public class SipProfile {
 
     private boolean active = true;
 
-
-
-
-
     @PrePersist
     protected void onCreate() {
         creationDate = LocalDateTime.now();
     }
+
+
 
     public Long getId() {
         return id;

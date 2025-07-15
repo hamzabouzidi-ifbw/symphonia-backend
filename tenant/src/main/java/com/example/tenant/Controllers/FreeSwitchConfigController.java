@@ -69,13 +69,24 @@ public class FreeSwitchConfigController {
         xmlBuilder.append("  <section name=\"dialplan\" description=\"Dynamic Dialplan\">\n");
         xmlBuilder.append("    <context name=\"").append(domainName).append("\">\n");
 
+
+        xmlBuilder.append("      <extension name=\"check_voicemail\">\n");
+        xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^123$\">\n");
+        xmlBuilder.append("          <action application=\"voicemail\" data=\"check default ").append(domainName).append("\"/>\n");
+        xmlBuilder.append("        </condition>\n");
+        xmlBuilder.append("      </extension>\n");
+
+
         // 1. Appels internes au tenant (extensions à 4 chiffres)
         String extensionPattern = "^(\\d{4})$";
         xmlBuilder.append("      <extension name=\"local_call_within_tenant\">\n");
         xmlBuilder.append("        <condition field=\"destination_number\" expression=\"").append(extensionPattern).append("\">\n");
-        xmlBuilder.append("          <action application=\"bridge\" data=\"user/").append(destNumber).append("@").append(domainName).append("\"/>\n");
+        xmlBuilder.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
+        xmlBuilder.append("          <action application=\"bridge\" data=\"user/$1@").append(domainName).append("\"/>\n");
+        xmlBuilder.append("          <action application=\"voicemail\" data=\"default ").append(domainName).append(" $1\"/>\n");
         xmlBuilder.append("        </condition>\n");
         xmlBuilder.append("      </extension>\n");
+
 
         // 2. Appels entrants via un DID
         System.out.println("Recherche DID pour numéro : " + destNumber);
@@ -103,10 +114,11 @@ public class FreeSwitchConfigController {
 
                     xmlBuilder.append("      <extension name=\"incoming_did\">\n");
                     xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^").append(destNumber).append("$\">\n");
-                    xmlBuilder.append("          <action application=\"bridge\" data=\"user/")
-                            .append(sipExtension).append("@").append(domainName).append("\"/>\n");
+                    xmlBuilder.append("          <action application=\"bridge\" data=\"user/").append(sipExtension).append("@").append(domainName).append("\"/>\n");
+                    xmlBuilder.append("          <action application=\"voicemail\" data=\"default ").append(domainName).append(" ").append(sipExtension).append("\"/>\n");
                     xmlBuilder.append("        </condition>\n");
                     xmlBuilder.append("      </extension>\n");
+
                     System.out.println("Extension DID ajoutée dans le dialplan XML.");
                 } else {
                     System.out.println("Le SIP Profile ne correspond pas au tenant courant.");
@@ -144,7 +156,8 @@ public class FreeSwitchConfigController {
                 "          <variable name=\"user_context\" value=\"" + profile.getDomainName() + "\"/>\n" +
                 "          <variable name=\"effective_caller_id_name\" value=\"" + profile.getUsername() + "\"/>\n" +
                 "          <variable name=\"effective_caller_id_number\" value=\"" + profile.getExtension() + "\"/>\n" +
-                "          <variable name=\"tenant_id\" value=\"" + profile.getTenantId().toString() + "\"/>\n" +
+                "          <variable name=\"vm-password\" value=\"" + profile.getExtension() + "\"/>\n" +
+                "          <variable name=\"vm-mailto\" value=\"" + profile.getEmail() + "\"/>\n" +
                 "        </variables>\n" +
                 "      </user>\n" +
                 "    </domain>\n" +

@@ -213,4 +213,8 @@ public class SipUserService {
     public Optional<SipProfile> findById(Long id) {
         return sipProfileRepository.findById(id);
     }
+
+    public List<SipProfile> getAllSipProfiles() {
+        return sipProfileRepository.findAll();
+    }
 }

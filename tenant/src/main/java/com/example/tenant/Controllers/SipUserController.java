@@ -3,12 +3,15 @@ package com.example.tenant.Controllers;
 import com.example.tenant.Dto.CreateSipUserRequest;
 import com.example.tenant.Dto.CreateTenantRequest;
 import com.example.tenant.Dto.SipUserCreationResponse;
+import com.example.tenant.Dto.VoicemailConfigDto;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
+import com.example.tenant.Entities.UsersConfig.VoicemailConfig;
 import com.example.tenant.Repositories.SipProfileRepository;
 import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
+import com.example.tenant.Services.UsersConfig.VoicemailConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +33,8 @@ public class SipUserController {
     private SipProfileRepository sipProfileRepository;
     @Autowired
     private DidNumberService didNumberService;
-
+    @Autowired
+    private VoicemailConfigService voicemailConfigService;
     @PostMapping()
     public ResponseEntity<?> createSipUser(
             @RequestBody CreateSipUserRequest request,
@@ -73,8 +77,6 @@ public class SipUserController {
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-
-
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteSipUser(
             @PathVariable Long id,
@@ -88,7 +90,20 @@ public class SipUserController {
                     .body("Erreur lors de la suppression du SIP user: " + e.getMessage());
         }
     }
+    @GetMapping("/all")
+    public List<SipProfile> getAllSipProfiles() {
+        return sipUserService.getAllSipProfiles();
+    }
 
+
+
+
+
+
+
+
+
+    /******************************************** Freeswitch *****************************************/
     @PostMapping("/{sipUserId}/dids")
     public ResponseEntity<?> assignDidToUser(@PathVariable Long sipUserId,@RequestBody Map<String, String> payload) {
 
@@ -124,5 +139,47 @@ public class SipUserController {
         }
     }
 
+    // ✅ GET voicemail config by sipProfileId
+    @GetMapping("/voice_mail/{sipProfileId}")
+    public ResponseEntity<VoicemailConfigDto> getVoicemailConfig(@PathVariable Long sipProfileId) {
+        return voicemailConfigService.getBySipProfileId(sipProfileId)
+                .map(this::toDto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ✅ POST save/update voicemail config for sipProfileId
+    @PostMapping("/{sipProfileId}")
+    public ResponseEntity<VoicemailConfigDto> saveVoicemailConfig(
+            @PathVariable Long sipProfileId,
+            @RequestBody VoicemailConfig config) {
+
+        // set the SipProfile reference manually if needed
+        voicemailConfigService.attachSipProfile(config, sipProfileId); // We'll define this in service
+
+        VoicemailConfig saved = voicemailConfigService.save(config);
+        return ResponseEntity.ok(toDto(saved));
+    }
+
+    // ✅ Mapping function: VoicemailConfig → VoicemailConfigDto
+    private VoicemailConfigDto toDto(VoicemailConfig entity) {
+        VoicemailConfigDto dto = new VoicemailConfigDto();
+        dto.setId(entity.getId());
+
+        if (entity.getSipProfile() != null) {
+            dto.setSipProfileId(entity.getSipProfile().getId());
+            dto.setSipUserExtension(entity.getSipProfile().getExtension());
+        }
+
+        dto.setVoicemailPassword(entity.getVoicemailPassword());
+        dto.setVoicemailEnabled(entity.isVoicemailEnabled());
+        dto.setNotificationEmail(entity.getNotificationEmail());
+
+        return dto;
+    }
+    @GetMapping("/voice-mail/all")
+    public List<VoicemailConfig> getAllVoicemailConfigs() {
+        return voicemailConfigService.getAllVoicemailConfigs();
+    }
 
 }
