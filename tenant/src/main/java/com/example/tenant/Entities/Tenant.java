@@ -20,7 +20,7 @@ public class Tenant {
     private String domainName;           // domain
     private boolean active = true;    // Pour activer/désactiver un tenant
     private String adminEmail;
-    private String timezone="Tunisia";
+    private String timezone="Europe/Paris";
     @Column(nullable = false)
     private Integer extensionPrefix; // Préfixe numérique (ex: 1 pour tenant A)
 

@@ -2,7 +2,6 @@ package com.example.tenant.Entities.UsersConfig;
 
 import com.example.tenant.Entities.SipProfile;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import javax.persistence.*;
 
 @Entity
@@ -15,14 +14,12 @@ public class DidNumber {
 
     @JsonProperty("number")
     private String didNumber;
-    private String extension;
-    @Column(name = "sip_profile_id")
-    private Long sipProfileId;
 
-    private String domainName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sip_profile_id", referencedColumnName = "id")
+    private SipProfile sipProfile;
 
     // Getters / Setters ...
-
 
     public Long getId() {
         return id;
@@ -40,27 +37,20 @@ public class DidNumber {
         this.didNumber = didNumber;
     }
 
+    public SipProfile getSipProfile() {
+        return sipProfile;
+    }
+
+    public void setSipProfile(SipProfile sipProfile) {
+        this.sipProfile = sipProfile;
+    }
+
+    // Méthode pratique pour accéder aux propriétés liées
     public String getExtension() {
-        return extension;
-    }
-
-    public void setExtension(String extension) {
-        this.extension = extension;
-    }
-
-    public Long getSipProfileId() {
-        return sipProfileId;
-    }
-
-    public void setSipProfileId(Long sipProfileId) {
-        this.sipProfileId = sipProfileId;
+        return sipProfile != null ? sipProfile.getExtension() : null;
     }
 
     public String getDomainName() {
-        return domainName;
-    }
-
-    public void setDomainName(String domainName) {
-        this.domainName = domainName;
+        return sipProfile != null ? sipProfile.getDomainName() : null;
     }
 }

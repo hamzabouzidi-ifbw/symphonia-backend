@@ -85,9 +85,9 @@ private ResponseEntity<String> generateDialplanXml(String domainName, String des
     if (didOpt.isPresent()) {
         DidNumber did = didOpt.get();
         System.out.println("DID extension : " + did.getExtension());
-        System.out.println("DID SIP Profile ID : " + did.getSipProfileId());
+        System.out.println("DID SIP Profile ID : " + did.getSipProfile().getId());
 
-        Optional<SipProfile> sipOpt = sipUserService.findById(did.getSipProfileId());
+        Optional<SipProfile> sipOpt = sipUserService.findById(did.getSipProfile().getId());
         System.out.println("SIP Profile trouvé ? " + sipOpt.isPresent());
 
         if (sipOpt.isPresent()) {

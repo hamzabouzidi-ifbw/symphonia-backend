@@ -13,9 +13,10 @@ import java.util.Optional;
 public class DidNumberService {
 
     @Autowired
-    private  DidNumberRepository didNumberRepository;
+    private DidNumberRepository didNumberRepository;
+
     @Autowired
-    private  SipProfileRepository sipProfileRepository;
+    private SipProfileRepository sipProfileRepository;
 
     public DidNumber createDid(DidNumber request) {
         String didNumber = request.getDidNumber();
@@ -32,22 +33,20 @@ public class DidNumberService {
             throw new IllegalArgumentException("Ce numéro DID est déjà attribué.");
         }
 
-        Optional<SipProfile> sipOpt = sipProfileRepository.findByExtensionAndId(
-                request.getExtension(), request.getSipProfileId());
-
-        if (sipOpt.isEmpty()) {
-            throw new IllegalArgumentException("Aucun utilisateur SIP correspondant à cette extension.");
+        if (request.getSipProfile() == null || request.getSipProfile().getId() == null) {
+            throw new IllegalArgumentException("Un utilisateur SIP valide doit être associé.");
         }
 
-        SipProfile sip = sipOpt.get();
-        request.setDomainName(sip.getDomainName());
+        Optional<SipProfile> sipOpt = sipProfileRepository.findById(request.getSipProfile().getId());
+        if (sipOpt.isEmpty()) {
+            throw new IllegalArgumentException("Aucun utilisateur SIP correspondant trouvé.");
+        }
 
+        request.setSipProfile(sipOpt.get());
         return didNumberRepository.save(request);
     }
+
     public Optional<DidNumber> findActiveDid(String didNumber) {
         return didNumberRepository.findByDidNumber(didNumber);
     }
-
-
 }
-

@@ -95,32 +95,32 @@ public class SipUserController {
         return ResponseEntity.ok(didNumberService.createDid(request));
     }*/
 
-    @PostMapping("/dids")
-    public ResponseEntity<?> createDid(@PathVariable Long sipUserId, @RequestBody Map<String, String> payload) {
-        String didNumber = payload.get("didNumber");
+    @PostMapping("/{sipUserId}/dids")
+    public ResponseEntity<?> assignDidToUser(
+            @PathVariable Long sipUserId,
+            @RequestBody Map<String, String> payload) {
 
+        String didNumber = payload.get("didNumber");
         if (didNumber == null || didNumber.isEmpty()) {
             return ResponseEntity.badRequest().body("Le numéro DID est requis.");
         }
 
         Optional<SipProfile> sipUserOpt = sipProfileRepository.findById(sipUserId);
-        if (!sipUserOpt.isPresent()) {
+        if (sipUserOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur SIP non trouvé.");
         }
 
-        SipProfile sipUser = sipUserOpt.get();
-
         DidNumber did = new DidNumber();
         did.setDidNumber(didNumber);
-        did.setExtension(sipUser.getExtension());
-        did.setSipProfileId(sipUser.getId());
+        did.setSipProfile(sipUserOpt.get());
 
-        DidNumber saved = didNumberService.createDid(did);
-
-        return ResponseEntity.ok(saved);
+        try {
+            DidNumber saved = didNumberService.createDid(did);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
-
-
 
 
 }
