@@ -89,16 +89,8 @@ public class SipUserController {
         }
     }
 
-
-  /*  @PostMapping("/dids")
-    public ResponseEntity<DidNumber> createDid(@RequestBody DidNumber request) {
-        return ResponseEntity.ok(didNumberService.createDid(request));
-    }*/
-
     @PostMapping("/{sipUserId}/dids")
-    public ResponseEntity<?> assignDidToUser(
-            @PathVariable Long sipUserId,
-            @RequestBody Map<String, String> payload) {
+    public ResponseEntity<?> assignDidToUser(@PathVariable Long sipUserId,@RequestBody Map<String, String> payload) {
 
         String didNumber = payload.get("didNumber");
         if (didNumber == null || didNumber.isEmpty()) {
@@ -119,6 +111,16 @@ public class SipUserController {
             return ResponseEntity.ok(saved);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @GetMapping("/{sipUserId}/did")
+    public ResponseEntity<?> getDidForUser(@PathVariable Long sipUserId) {
+        Optional<DidNumber> didOpt = didNumberService.findBySipProfileId(sipUserId);
+
+        if (didOpt.isPresent()) {
+            return ResponseEntity.ok(Map.of("didNumber", didOpt.get().getDidNumber()));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aucun DID trouvé pour cet utilisateur.");
         }
     }
 

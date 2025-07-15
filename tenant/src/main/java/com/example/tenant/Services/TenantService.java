@@ -286,4 +286,24 @@ public class TenantService {
                 .collect(Collectors.toList());
     }
 
+    public int getTotalUsedUsers(String token) {
+        List<Tenant> tenants = tenantRepository.findAll();
+        int totalUsedUsers = 0;
+
+        for (Tenant tenant : tenants) {
+            try {
+                List<LicenceAssignmentRequest> licences = licenceServiceClient.getLicencesByTenant(token, tenant.getId());
+                for (LicenceAssignmentRequest licence : licences) {
+                    totalUsedUsers += licence.getUsedUsers();
+                }
+            } catch (Exception e) {
+                System.err.println("Erreur lors de la récupération des licences pour le tenant " + tenant.getId() + ": " + e.getMessage());
+            }
+        }
+
+        return totalUsedUsers;
+    }
+
+
+
 }

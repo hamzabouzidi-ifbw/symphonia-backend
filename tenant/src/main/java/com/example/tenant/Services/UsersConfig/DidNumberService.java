@@ -1,5 +1,6 @@
 package com.example.tenant.Services.UsersConfig;
 
+import com.example.tenant.Dto.DidResponse;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Repositories.DidNumberRepository;
@@ -49,4 +50,8 @@ public class DidNumberService {
     public Optional<DidNumber> findActiveDid(String didNumber) {
         return didNumberRepository.findByDidNumber(didNumber);
     }
+    public Optional<DidNumber> findBySipProfileId(Long sipProfileId) {
+        return didNumberRepository.findBySipProfileId(sipProfileId);
+    }
+
 }

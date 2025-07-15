@@ -12,7 +12,6 @@ import java.util.Optional;
 public interface DidNumberRepository extends JpaRepository<DidNumber, Long> {
 
     Optional<DidNumber> findByDidNumber(String didNumber);
-    List<DidNumber> findBySipProfile(SipProfile sipProfile);
-    List<DidNumber> findBySipProfileId(Long sipProfileId); // Optionnel
+    Optional<DidNumber> findBySipProfileId(Long sipProfileId);
 
 }

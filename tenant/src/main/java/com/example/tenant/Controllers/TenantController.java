@@ -159,5 +159,16 @@ public class TenantController {
         List<String> tenantNames = tenantService.getAllTenantNames();
         return ResponseEntity.ok(tenantNames);
     }
+    @GetMapping("/total-used-users")
+    public ResponseEntity<Integer> getTotalUsedUsers(@RequestHeader("Authorization") String authToken) {
+        try {
+            int totalUsedUsers = tenantService.getTotalUsedUsers(authToken);
+            return ResponseEntity.ok(totalUsedUsers);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+        }
+    }
+
 
 }
