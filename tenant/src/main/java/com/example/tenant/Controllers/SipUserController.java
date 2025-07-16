@@ -182,4 +182,22 @@ public class SipUserController {
         return voicemailConfigService.getAllVoicemailConfigs();
     }
 
+
+    @PostMapping("/{sipProfileId}/activate")
+    public ResponseEntity<?> activateVoicemail(@PathVariable Long sipProfileId) {
+        boolean updated = voicemailConfigService.activateVoicemail(sipProfileId);
+        if (updated) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{sipProfileId}/deactivate")
+    public ResponseEntity<?> deactivateVoicemail(@PathVariable Long sipProfileId) {
+        boolean updated = voicemailConfigService.deactivateVoicemail(sipProfileId);
+        if (updated) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
 }

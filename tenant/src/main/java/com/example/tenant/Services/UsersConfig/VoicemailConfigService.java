@@ -51,4 +51,29 @@ public class VoicemailConfigService {
                 })
                 .collect(Collectors.toList());
     }
+
+
+    // Activer le voicemail d'un profil SIP donné
+    public boolean activateVoicemail(Long sipProfileId) {
+        Optional<VoicemailConfig> configOpt = voicemailConfigRepository.findBySipProfileId(sipProfileId);
+        if (configOpt.isPresent()) {
+            VoicemailConfig config = configOpt.get();
+            config.setVoicemailEnabled(true);
+            voicemailConfigRepository.save(config);
+            return true;
+        }
+        return false;  // pas trouvé
+    }
+
+    // Désactiver le voicemail d'un profil SIP donné
+    public boolean deactivateVoicemail(Long sipProfileId) {
+        Optional<VoicemailConfig> configOpt = voicemailConfigRepository.findBySipProfileId(sipProfileId);
+        if (configOpt.isPresent()) {
+            VoicemailConfig config = configOpt.get();
+            config.setVoicemailEnabled(false);
+            voicemailConfigRepository.save(config);
+            return true;
+        }
+        return false;  // pas trouvé
+    }
 }
