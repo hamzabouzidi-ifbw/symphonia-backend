@@ -206,7 +206,6 @@ public class SipUserController {
         CallGroup group = callGroupService.createCallGroupWithMembers(
                 request.getGroupName(),
                 request.getExtension(),
-                request.getTenantId(),
                 request.getSipProfileIds()
         );
 
