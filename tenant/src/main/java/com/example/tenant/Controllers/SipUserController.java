@@ -1,15 +1,14 @@
 package com.example.tenant.Controllers;
 
-import com.example.tenant.Dto.CreateSipUserRequest;
-import com.example.tenant.Dto.CreateTenantRequest;
-import com.example.tenant.Dto.SipUserCreationResponse;
-import com.example.tenant.Dto.VoicemailConfigDto;
+import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
+import com.example.tenant.Entities.UsersConfig.CallGroup;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Entities.UsersConfig.VoicemailConfig;
 import com.example.tenant.Repositories.SipProfileRepository;
 import com.example.tenant.Services.SipUserService;
+import com.example.tenant.Services.UsersConfig.CallGroupService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
 import com.example.tenant.Services.UsersConfig.VoicemailConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +34,8 @@ public class SipUserController {
     private DidNumberService didNumberService;
     @Autowired
     private VoicemailConfigService voicemailConfigService;
+    @Autowired
+    private CallGroupService callGroupService;
     @PostMapping()
     public ResponseEntity<?> createSipUser(
             @RequestBody CreateSipUserRequest request,
@@ -138,7 +139,6 @@ public class SipUserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aucun DID trouvé pour cet utilisateur.");
         }
     }
-
     // ✅ GET voicemail config by sipProfileId
     @GetMapping("/voice_mail/{sipProfileId}")
     public ResponseEntity<VoicemailConfigDto> getVoicemailConfig(@PathVariable Long sipProfileId) {
@@ -200,4 +200,45 @@ public class SipUserController {
         }
         return ResponseEntity.notFound().build();
     }
+
+    @PostMapping("/call-groups")
+    public ResponseEntity<?> createGroup(@RequestBody CallGroupRequest request) {
+        CallGroup group = callGroupService.createCallGroupWithMembers(
+                request.getGroupName(),
+                request.getExtension(),
+                request.getTenantId(),
+                request.getSipProfileIds()
+        );
+
+        return ResponseEntity.ok(group);
+    }
+
+    @GetMapping("/call-groups/all")
+    public ResponseEntity<List<CallGroup>> getAllCallGroups() {
+        List<CallGroup> callGroups = callGroupService.getAllCallGroupsWithMembers();
+        return ResponseEntity.ok(callGroups);
+    }
+    @PutMapping("/call-groups/{id}")
+    public ResponseEntity<CallGroup> updateGroup(@PathVariable Long id, @RequestBody CallGroupRequest request) {
+        CallGroup updated = callGroupService.updateCallGroup(id, request.getGroupName(), request.getExtension());
+        return ResponseEntity.ok(updated);
+    }
+    @PostMapping("/call-groups/{id}/members")
+    public ResponseEntity<CallGroup> addMembers(@PathVariable Long id, @RequestBody List<Long> sipIds) {
+        CallGroup updated = callGroupService.addMembersToGroup(id, sipIds);
+        return ResponseEntity.ok(updated);
+    }
+    @DeleteMapping("/call-groups/{id}")
+    public ResponseEntity<Void> deleteGroup(@PathVariable Long id) {
+        callGroupService.deleteCallGroup(id);
+        return ResponseEntity.noContent().build();
+    }
+    @DeleteMapping("/call-groups/{groupId}/members/{sipId}")
+    public ResponseEntity<CallGroup> removeMember(@PathVariable Long groupId, @PathVariable Long sipId) {
+        CallGroup updated = callGroupService.removeMemberFromGroup(groupId, sipId);
+        return ResponseEntity.ok(updated);
+    }
+
+
+
 }
