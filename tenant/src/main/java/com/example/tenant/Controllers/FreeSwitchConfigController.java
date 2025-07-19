@@ -11,10 +11,7 @@ import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,8 +31,7 @@ public class FreeSwitchConfigController {
     @Autowired
     private CallGroupRepository callGroupRepository;
 
-    @GetMapping(value = "/config", produces = MediaType.APPLICATION_XML_VALUE)
-    public ResponseEntity<String> getFreeSwitchConfig(
+    @PostMapping(value = "/config", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_XML_VALUE)    public ResponseEntity<String> getFreeSwitchConfig(
             @RequestParam String section,
             @RequestParam(required = false) String domain,
             @RequestParam(required = false) String user,
@@ -54,8 +50,6 @@ public class FreeSwitchConfigController {
 
         return notFoundXml();
     }
-
-
 /*
     private ResponseEntity<String> generateDialplanXml(String domainName, String destNumber) {
         System.out.println("generateDialplanXml appelé avec domainName=" + domainName + " et destNumber=" + destNumber);
@@ -73,28 +67,26 @@ public class FreeSwitchConfigController {
         StringBuilder xmlBuilder = new StringBuilder();
         xmlBuilder.append("<document type=\"freeswitch/xml\">\n");
         xmlBuilder.append("  <section name=\"dialplan\" description=\"Dynamic Dialplan\">\n");
-        xmlBuilder.append("    <context name=\"").append(domainName).append("\">\n");
+        xmlBuilder.append("    <context name=\"").append("default").append("\">\n");
 
-
+        // Règle pour check voicemail (123)
         xmlBuilder.append("      <extension name=\"check_voicemail\">\n");
         xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^123$\">\n");
         xmlBuilder.append("          <action application=\"voicemail\" data=\"check default ").append(domainName).append("\"/>\n");
         xmlBuilder.append("        </condition>\n");
         xmlBuilder.append("      </extension>\n");
 
-
-        // 1. Appels internes au tenant (extensions à 4 chiffres)
+        // 1. Appels internes tenant (extensions 4 chiffres)
         String extensionPattern = "^(\\d{4})$";
         xmlBuilder.append("      <extension name=\"local_call_within_tenant\">\n");
         xmlBuilder.append("        <condition field=\"destination_number\" expression=\"").append(extensionPattern).append("\">\n");
         xmlBuilder.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
-        xmlBuilder.append("          <action application=\"bridge\" data=\"user/$1@").append(domainName).append("\"/>\n");
+        xmlBuilder.append("          <action application=\"bridge\" data=\"user/$1@default\"/>\n");
         xmlBuilder.append("          <action application=\"voicemail\" data=\"default ").append(domainName).append(" $1\"/>\n");
         xmlBuilder.append("        </condition>\n");
         xmlBuilder.append("      </extension>\n");
 
-
-        // 2. Appels entrants via un DID
+        // 2. Gestion du DID entrant
         System.out.println("Recherche DID pour numéro : " + destNumber);
         Optional<DidNumber> didOpt = didNumberService.findActiveDid(destNumber);
         System.out.println("DID trouvé ? " + didOpt.isPresent());
@@ -115,7 +107,6 @@ public class FreeSwitchConfigController {
 
                 // Vérifie que le SIP profile appartient au tenant actuel
                 if (sipProfile.getTenantId().equals(tenant.getId())) {
-                    // Récupération de l'extension du SIP Profile
                     String sipExtension = sipProfile.getExtension();
 
                     xmlBuilder.append("      <extension name=\"incoming_did\">\n");
@@ -125,24 +116,39 @@ public class FreeSwitchConfigController {
                     xmlBuilder.append("        </condition>\n");
                     xmlBuilder.append("      </extension>\n");
 
-                    System.out.println("Extension DID ajoutée dans le dialplan XML.");
+                    // Gestion des CallGroups
+                    List<CallGroup> callGroups = callGroupRepository.findByMembers_Id(sipProfile.getId());
+                    for (CallGroup group : callGroups) {
+                        String groupExtension = group.getExtension();
+                        if (groupExtension != null && !groupExtension.isEmpty()) {
+                            xmlBuilder.append("      <extension name=\"callgroup_").append(group.getId()).append("\">\n");
+                            xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^").append(groupExtension).append("$\">\n");
+                            xmlBuilder.append("          <action application=\"bridge\" data=\"user/").append(sipExtension).append("@").append(domainName).append("\"/>\n");
+                            xmlBuilder.append("          <action application=\"voicemail\" data=\"default ").append(domainName).append(" ").append(sipExtension).append("\"/>\n");
+                            xmlBuilder.append("        </condition>\n");
+                            xmlBuilder.append("      </extension>\n");
+                        }
+                    }
                 } else {
                     System.out.println("Le SIP Profile ne correspond pas au tenant courant.");
                 }
             }
         }
 
-        // 3. Ajouter d'autres règles si besoin...
+        // 3. Possibilité d'ajouter d'autres règles si nécessaire...
 
         xmlBuilder.append("    </context>\n");
         xmlBuilder.append("  </section>\n");
-        xmlBuilder.append("</document>");
+        xmlBuilder.append("</document>\n");
 
         return ResponseEntity.ok(xmlBuilder.toString());
     }
 */
 
-    private ResponseEntity<String> generateDialplanXml(String domainName, String destNumber) {
+
+
+
+   private ResponseEntity<String> generateDialplanXml(String domainName, String destNumber) {
         System.out.println("generateDialplanXml appelé avec domainName=" + domainName + " et destNumber=" + destNumber);
 
         Optional<Tenant> tenantOpt = tenantService.getByDomain(domainName);
@@ -160,6 +166,14 @@ public class FreeSwitchConfigController {
         xmlBuilder.append("  <section name=\"dialplan\" description=\"Dynamic Dialplan\">\n");
         xmlBuilder.append("    <context name=\"").append(domainName).append("\">\n");
 
+
+       // Ajouter les variables ici
+       xmlBuilder.append("      <variables>\n");
+       xmlBuilder.append("        <variable name=\"user_context\" value=\"default\"/>\n");
+       xmlBuilder.append("      </variables>\n");
+
+
+
         // Règle pour check voicemail (123)
         xmlBuilder.append("      <extension name=\"check_voicemail\">\n");
         xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^123$\">\n");
@@ -170,7 +184,8 @@ public class FreeSwitchConfigController {
         // 1. Appels internes tenant (extensions 4 chiffres)
         String extensionPattern = "^(\\d{4})$";
         xmlBuilder.append("      <extension name=\"local_call_within_tenant\">\n");
-        xmlBuilder.append("        <condition field=\"destination_number\" expression=\"").append(extensionPattern).append("\">\n");
+       xmlBuilder.append("  <variable name=\"user_context\" value=\"").append(domainName).append("\"/>\n");
+       xmlBuilder.append("        <condition field=\"destination_number\" expression=\"").append(extensionPattern).append("\">\n");
         xmlBuilder.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
         xmlBuilder.append("          <action application=\"bridge\" data=\"user/$1@").append(domainName).append("\"/>\n");
         xmlBuilder.append("          <action application=\"voicemail\" data=\"default ").append(domainName).append(" $1\"/>\n");
@@ -219,6 +234,7 @@ public class FreeSwitchConfigController {
                             xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^").append(groupExtension).append("$\">\n");
                             xmlBuilder.append("          <action application=\"bridge\" data=\"user/").append(sipExtension).append("@").append(domainName).append("\"/>\n");
                             xmlBuilder.append("          <action application=\"voicemail\" data=\"default ").append(domainName).append(" ").append(sipExtension).append("\"/>\n");
+
                             xmlBuilder.append("        </condition>\n");
                             xmlBuilder.append("      </extension>\n");
                         }
@@ -239,8 +255,8 @@ public class FreeSwitchConfigController {
     }
 
 
-    private ResponseEntity<String> generateDirectoryXml(String domainName, String username) {
-        Optional<SipProfile> sipProfileOpt = sipUserService.findByDomainAndUsername(domainName, username);
+    private ResponseEntity<String> generateDirectoryXml(String domainName, String extension) {
+        Optional<SipProfile> sipProfileOpt = sipUserService.findByDomainAndExtension(domainName, extension);
 
         if (sipProfileOpt.isEmpty() || !sipProfileOpt.get().isActive()) {
             return notFoundXml();
@@ -251,18 +267,31 @@ public class FreeSwitchConfigController {
         String xml = "<document type=\"freeswitch/xml\">\n" +
                 "  <section name=\"directory\">\n" +
                 "    <domain name=\"" + profile.getDomainName() + "\">\n" +
-                "      <user id=\"" + profile.getUsername() + "\">\n" +
-                "        <params>\n" +
-                "          <param name=\"password\" value=\"" + profile.getPassword() + "\"/>\n" +
-                "        </params>\n" +
-                "        <variables>\n" +
-                "          <variable name=\"user_context\" value=\"" + profile.getDomainName() + "\"/>\n" +
-                "          <variable name=\"effective_caller_id_name\" value=\"" + profile.getUsername() + "\"/>\n" +
-                "          <variable name=\"effective_caller_id_number\" value=\"" + profile.getExtension() + "\"/>\n" +
-                "          <variable name=\"vm-password\" value=\"" + profile.getExtension() + "\"/>\n" +
-                "          <variable name=\"vm-mailto\" value=\"" + profile.getEmail() + "\"/>\n" +
-                "        </variables>\n" +
-                "      </user>\n" +
+                "      <params>\n" +
+                "        <param name=\"dial-string\" value=\"{sip_invite_domain=${dial_string}}\"/>\n" +
+                "      </params>\n" +
+                "      <variables>\n" +
+                "        <variable name=\"default_context\" value=\"default\"/>\n" +
+                "        <variable name=\"internal_auth_map\" value=\"1\"/>\n" +
+                "      </variables>\n" +
+                "      <groups>\n" +
+                "        <group name=\"default\">\n" +
+                "          <users>\n" +
+                "            <user id=\"" + profile.getExtension() + "\" type=\"user\">\n" +
+                "              <params>\n" +
+                "                <param name=\"password\" value=\"" + profile.getPassword() + "\"/>\n" +
+                "                <param name=\"vm-enabled\" value=\"true\"/>\n" +
+                "                <param name=\"vm-password\" value=\"" + profile.getExtension() + "\"/>\n" +
+
+                "              </params>\n" +
+                "              <variables>\n" +
+                "                <variable name=\"user_context\" value=\"default\"/>\n" +
+                "                <variable name=\"extension_name\" value=\"" + profile.getUsername() + "\"/>\n" +
+                "              </variables>\n" +
+                "            </user>\n" +
+                "          </users>\n" +
+                "        </group>\n" +
+                "      </groups>\n" +
                 "    </domain>\n" +
                 "  </section>\n" +
                 "</document>";
