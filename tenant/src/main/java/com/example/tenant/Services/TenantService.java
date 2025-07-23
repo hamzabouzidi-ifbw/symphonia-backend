@@ -54,7 +54,7 @@ public class TenantService {
         if (tenantRepository.existsByExtensionPrefix(request.getExtensionPrefix())) {
             throw new RuntimeException("Ce préfixe d'extension est déjà utilisé par un autre tenant");
         }
-        String domainName = request.getTenantName() + "@symphonia.com";
+        String domainName = request.getTenantName() + ".symphonia.ifbw.net";
         String contextName = request.getTenantName() + "_context";
         String code = request.getTenantName() + "-" + String.format("%03d", new Random().nextInt(1000));
 
