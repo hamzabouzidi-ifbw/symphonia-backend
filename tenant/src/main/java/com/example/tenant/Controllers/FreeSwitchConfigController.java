@@ -9,15 +9,18 @@ import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.loadbalancer.config.LoadBalancerCacheAutoConfiguration;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/freeswitch")
+@RequestMapping("/freeswitch/config")
 public class FreeSwitchConfigController {
 
     @Autowired
@@ -30,14 +33,20 @@ public class FreeSwitchConfigController {
     private DidNumberService didNumberService;
     @Autowired
     private CallGroupRepository callGroupRepository;
+    @Autowired
+    private LoadBalancerCacheAutoConfiguration logger;
 
-    @PostMapping(value = "/config", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_XML_VALUE)    public ResponseEntity<String> getFreeSwitchConfig(
+
+    /*@PostMapping(value = "/config", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity<String> getFreeSwitchConfig(
             @RequestParam String section,
             @RequestParam(required = false) String domain,
             @RequestParam(required = false) String user,
             @RequestParam(required = false, name = "context") String contextName,
-            @RequestParam(required = false, name = "destination_number") String destNumber) {
-
+            @RequestParam(required = false, name = "destination_number") String destNumber,
+            @RequestParam(required = false, name = "key_name") String keyName,
+            @RequestParam(required = false, name = "profile") String profile
+    ) {
         if ("directory".equals(section)) {
             if (domain != null && user != null) {
                 return generateDirectoryXml(domain, user);
@@ -46,11 +55,14 @@ public class FreeSwitchConfigController {
             if (contextName != null && destNumber != null) {
                 return generateDialplanXml(contextName, destNumber);
             }
+        } else if ("configuration".equals(section)) {
+            return generateConfigurationXml(keyName, profile);
         }
 
         return notFoundXml();
-    }
+    }*/
 
+    @GetMapping("/dialplan")
    private ResponseEntity<String> generateDialplanXml(String domainName, String destNumber) {
         System.out.println("generateDialplanXml appelé avec domainName=" + domainName + " et destNumber=" + destNumber);
 
@@ -158,48 +170,87 @@ public class FreeSwitchConfigController {
     }
 
 
-    private ResponseEntity<String> generateDirectoryXml(String domainName, String extension) {
-        Optional<SipProfile> sipProfileOpt = sipUserService.findByDomainAndExtension(domainName, extension);
+   @GetMapping("/directory")
+    public ResponseEntity<String> generateDirectoryXml(
+            @RequestParam("domain") String domain,
+            @RequestParam("user") String user) {
 
+        Optional<SipProfile> sipProfileOpt = sipUserService.findByDomainAndExtension(domain, user);
         if (sipProfileOpt.isEmpty() || !sipProfileOpt.get().isActive()) {
             return notFoundXml();
         }
-
+        String cleanDomain = domain.split(",")[0];
+        String cleanUser = user.split(",")[0];
         SipProfile profile = sipProfileOpt.get();
 
-        String xml = "<document type=\"freeswitch/xml\">\n" +
-                "  <section name=\"directory\">\n" +
-                "    <domain name=\"" + profile.getDomainName() + "\">\n" +
-                "      <params>\n" +
-                "        <param name=\"dial-string\" value=\"{sip_invite_domain=${dial_string}}\"/>\n" +
-                "      </params>\n" +
-                "      <variables>\n" +
-                "        <variable name=\"default_context\" value=\"default\"/>\n" +
-                "        <variable name=\"internal_auth_map\" value=\"1\"/>\n" +
-                "      </variables>\n" +
-                "      <groups>\n" +
-                "        <group name=\"default\">\n" +
-                "          <users>\n" +
-                "            <user id=\"" + profile.getExtension() + "\" type=\"user\">\n" +
-                "              <params>\n" +
-                "                <param name=\"password\" value=\"" + profile.getPassword() + "\"/>\n" +
-                "                <param name=\"vm-enabled\" value=\"true\"/>\n" +
-                "                <param name=\"vm-password\" value=\"" + profile.getExtension() + "\"/>\n" +
-
-                "              </params>\n" +
-                "              <variables>\n" +
-                "                <variable name=\"user_context\" value=\"" + profile.getDomainName() + "\"/>\n" +
-                "                <variable name=\"extension_name\" value=\"" + profile.getUsername() + "\"/>\n" +
-                "              </variables>\n" +
-                "            </user>\n" +
-                "          </users>\n" +
-                "        </group>\n" +
-                "      </groups>\n" +
-                "    </domain>\n" +
-                "  </section>\n" +
+        // 3. Génère le XML attendu par FreeSWITCH avec le vrai domaine
+        String xml =
+                "<document type=\"freeswitch/xml\">\n" +
+                        "  <section name=\"directory\">\n" +
+                        "    <domain name=\"" + cleanDomain + "\">\n" +
+                        "      <user id=\"" + profile.getExtension() + "\">\n" +
+                        "        <params>\n" +
+                        "          <param name=\"password\" value=\"" + (profile.getPassword() != null ? profile.getPassword() : "") + "\"/>\n" +
+                        "          <param name=\"vm-password\" value=\"" + (profile.getPassword() != null ? profile.getPassword() : "") + "\"/>\n" +
+                        "        </params>\n" +
+                        "        <variables>\n" +
+                        "          <variable name=\"toll_allow\" value=\"" + "domestic,international,local" + "\"/>\n" +
+                        "          <variable name=\"accountcode\" value=\"" + (profile.getExtension() != null ? profile.getExtension() : "") + "\"/>\n" +
+                        "          <variable name=\"user_context\" value=\"" + "default" + "\"/>\n" +
+                        "          <variable name=\"effective_caller_id_name\" value=\"" + (profile.getDomainName() != null ? profile.getDomainName() : profile.getExtension()) + "\"/>\n" +
+                        "          <variable name=\"effective_caller_id_number\" value=\"" + (profile.getExtension() != null ? profile.getExtension(): "") + "\"/>\n" +
+                        "          <variable name=\"outbound_caller_id_name\" value=\"" + (profile.getUsername() != null ? profile.getUsername() : "") + "\"/>\n" +
+                        "          <variable name=\"outbound_caller_id_number\" value=\"" + (profile.getExtension() != null ? profile.getExtension() : "") + "\"/>\n" +
+                        "        </variables>\n" +
+                        "      </user>\n" +
+                        "    </domain>\n" +
+                        "  </section>\n" +
                 "</document>";
 
+        System.out.println("XML généré :\n{}"+ xml);
         return ResponseEntity.ok(xml);
+    }
+
+    private ResponseEntity<String> generateConfigurationXml(String keyName, String profile) {
+        if ("sofia.conf".equalsIgnoreCase(keyName) && "internal".equalsIgnoreCase(profile)) {
+            String xml =
+                    "<document type=\"freeswitch/xml\">\n" +
+                            "  <section name=\"configuration\">\n" +
+                            "    <configuration name=\"sofia.conf\" description=\"SIP\">\n" +
+                            "      <profiles>\n" +
+                            "        <profile name=\"internal\">\n" +
+                            "          <gateways/>\n" +
+                            "          <domains>\n" +
+                            "            <domain name=\"all\" parse=\"true\"/>\n" +
+                            "          </domains>\n" +
+                            "          <settings>\n" +
+                            "            <param name=\"context\" value=\"default\"/>\n" +
+                            "            <param name=\"sip-port\" value=\"5060\"/>\n" +
+                            "            <param name=\"rtp-ip\" value=\"auto\"/>\n" +
+                            "            <param name=\"sip-ip\" value=\"auto\"/>\n" +
+                            "            <param name=\"ext-rtp-ip\" value=\"auto-nat\"/>\n" +
+                            "            <param name=\"ext-sip-ip\" value=\"auto-nat\"/>\n" +
+                            "            <param name=\"dialplan\" value=\"XML\"/>\n" +
+                            "            <param name=\"inbound-codec-prefs\" value=\"PCMU,PCMA,OPUS\"/>\n" +
+                            "            <param name=\"outbound-codec-prefs\" value=\"PCMU,PCMA,OPUS\"/>\n" +
+                            "            <param name=\"auth-calls\" value=\"true\"/>\n" +
+                            "            <param name=\"rtp-timeout-sec\" value=\"300\"/>\n" +
+                            "            <param name=\"rtp-hold-timeout-sec\" value=\"1800\"/>\n" +
+                            "            <param name=\"manage-presence\" value=\"true\"/>\n" +
+                            "            <param name=\"record-path\" value=\"/var/lib/freeswitch/recordings\"/>\n" +
+                            "            <param name=\"record-template\" value=\"${caller_id_number}_${uuid}.wav\"/>\n" +
+                            "            <param name=\"watchdog-enabled\" value=\"false\"/>\n" +
+                            "          </settings>\n" +
+                            "        </profile>\n" +
+                            "      </profiles>\n" +
+                            "    </configuration>\n" +
+                            "  </section>\n" +
+                            "</document>";
+
+            return ResponseEntity.ok(xml);
+        }
+
+        return notFoundXml();
     }
 
 
@@ -208,4 +259,5 @@ public class FreeSwitchConfigController {
         String notFound = "<document type=\"freeswitch/xml\"><section name=\"result\"><result status=\"not found\" /></section></document>";
         return ResponseEntity.ok(notFound);
     }
+
 }

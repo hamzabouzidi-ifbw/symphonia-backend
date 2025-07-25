@@ -221,4 +221,14 @@ public class SipUserService {
     public List<SipProfile> getAllSipProfiles() {
         return sipProfileRepository.findAll();
     }
+
+    public Optional<SipProfile> findByTenantIdAndExtension(Long tenantId, String extension) {
+        return sipProfileRepository.findByTenantIdAndExtension(tenantId, extension);
+    }
+
+    public Optional<SipProfile> findByExtension(String extension) {
+        return sipProfileRepository.findByExtension(extension);
+    }
+
+
 }

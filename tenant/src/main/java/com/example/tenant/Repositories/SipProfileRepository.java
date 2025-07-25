@@ -14,18 +14,17 @@ public interface SipProfileRepository extends JpaRepository<SipProfile, Long> {
  boolean existsByExtension(String extension);
 
 
- List<SipProfile> findByTenantId(Long tenantId);
 
  List<SipProfile> findAllByTenantId(Long tenantId);
 
  Optional<SipProfile> findByUsername(String userName);
  Optional<SipProfile> findByEmail(String email);
  boolean existsByEmail(String email);
- List<SipProfile> findByDomainNameAndActiveTrue(String domainName);
 
  Optional<SipProfile> findByDomainNameAndUsernameAndActiveTrue(String domainName, String username);
  Optional<SipProfile> findByDomainNameAndExtensionAndActiveTrue(String domainName, String extension);
 
- Optional<SipProfile> findByExtensionAndId(String extension, Long id);
+ Optional<SipProfile> findByTenantIdAndExtension(Long tenantId, String extension);
+
 
 }
