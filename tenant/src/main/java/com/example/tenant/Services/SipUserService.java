@@ -197,8 +197,6 @@ public class SipUserService {
         // 4. Supprimer le SIP user de la base
         sipProfileRepository.delete(user);
     }
-
-
     public List<SipProfile> getSipUsersByTenantId(Long tenantId) {
         return sipProfileRepository.findAllByTenantId(tenantId);
     }
@@ -207,28 +205,16 @@ public class SipUserService {
         return sipProfileRepository.findById(id);
     }
 
-    public Optional<SipProfile> findByDomainAndUsername(String domain, String username) {
-        return sipProfileRepository.findByDomainNameAndUsernameAndActiveTrue(domain, username);
-    }
 
     public Optional<SipProfile> findByDomainAndExtension(String domain, String extension) {
         return sipProfileRepository.findByDomainNameAndExtensionAndActiveTrue(domain, extension);
-    }
-    public Optional<SipProfile> findById(Long id) {
-        return sipProfileRepository.findById(id);
     }
 
     public List<SipProfile> getAllSipProfiles() {
         return sipProfileRepository.findAll();
     }
 
-    public Optional<SipProfile> findByTenantIdAndExtension(Long tenantId, String extension) {
-        return sipProfileRepository.findByTenantIdAndExtension(tenantId, extension);
-    }
 
-    public Optional<SipProfile> findByExtension(String extension) {
-        return sipProfileRepository.findByExtension(extension);
-    }
 
 
 }

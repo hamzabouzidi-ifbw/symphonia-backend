@@ -1,26 +1,18 @@
+/*
 package com.example.tenant.Controllers;
 
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
-import com.example.tenant.Entities.UsersConfig.CallGroup;
-import com.example.tenant.Entities.UsersConfig.DidNumber;
-import com.example.tenant.Repositories.CallGroupRepository;
 import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.TenantService;
-import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.loadbalancer.config.LoadBalancerCacheAutoConfiguration;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/freeswitch/config")
+@RequestMapping("/freeswitch")
 public class FreeSwitchConfigController {
 
     @Autowired
@@ -29,42 +21,31 @@ public class FreeSwitchConfigController {
     @Autowired
     private TenantService tenantService;
 
-    @Autowired
-    private DidNumberService didNumberService;
-    @Autowired
-    private CallGroupRepository callGroupRepository;
-    @Autowired
-    private LoadBalancerCacheAutoConfiguration logger;
+    @GetMapping("/config") // Une seule URL pour tout
+    public ResponseEntity<String> generateXml(
+            @RequestParam("section") String section,
+            @RequestParam(name = "context", required = false) String domainName,
+            @RequestParam(name = "destination_number", required = false) String destNumber,
+            @RequestParam(name = "domain", required = false) String domain,
+            @RequestParam(name = "user", required = false) String user) {
 
-
-    /*@PostMapping(value = "/config", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_XML_VALUE)
-    public ResponseEntity<String> getFreeSwitchConfig(
-            @RequestParam String section,
-            @RequestParam(required = false) String domain,
-            @RequestParam(required = false) String user,
-            @RequestParam(required = false, name = "context") String contextName,
-            @RequestParam(required = false, name = "destination_number") String destNumber,
-            @RequestParam(required = false, name = "key_name") String keyName,
-            @RequestParam(required = false, name = "profile") String profile
-    ) {
-        if ("directory".equals(section)) {
-            if (domain != null && user != null) {
-                return generateDirectoryXml(domain, user);
-            }
-        } else if ("dialplan".equals(section)) {
-            if (contextName != null && destNumber != null) {
-                return generateDialplanXml(contextName, destNumber);
-            }
-        } else if ("configuration".equals(section)) {
-            return generateConfigurationXml(keyName, profile);
+        if ("dialplan".equals(section)) {
+            // Logique du dialplan ici, en utilisant domainName et destNumber
+            System.out.println("Requête pour DIALPLAN reçue pour le contexte : " + domainName);
+            return generateDialplanXml(domainName, destNumber); // Appelez votre méthode existante
         }
 
-        return notFoundXml();
-    }*/
+        if ("directory".equals(section)) {
+            // Logique du directory ici, en utilisant directoryDomain et directoryUser
+            System.out.println("Requête pour DIRECTORY reçue pour le domaine : " + domain);
+            return generateDirectoryXml(domain, user); // Appelez votre méthode existante
+        }
 
-    @GetMapping("/dialplan")
-   private ResponseEntity<String> generateDialplanXml(String domainName, String destNumber) {
-        System.out.println("generateDialplanXml appelé avec domainName=" + domainName + " et destNumber=" + destNumber);
+        // Si la section n'est ni dialplan ni directory, retourner "not found"
+        return notFoundXml();
+    }
+
+    public ResponseEntity<String> generateDialplanXml(String domainName,String destNumber) {
 
         Optional<Tenant> tenantOpt = tenantService.getByDomain(domainName);
 
@@ -82,98 +63,35 @@ public class FreeSwitchConfigController {
         xmlBuilder.append("    <context name=\"").append(domainName).append("\">\n");
 
 
-       // Ajouter les variables ici
-       xmlBuilder.append("      <variables>\n");
-       xmlBuilder.append("          <variable name=\"user_context\" value=\"" + domainName + "\"/>\n");
-       xmlBuilder.append("      </variables>\n");
+        // Ajouter les variables ici
+        xmlBuilder.append("      <variables>\n");
+        xmlBuilder.append("          <variable name=\"user_context\" value=\"" + domainName + "\"/>\n");
+        xmlBuilder.append("      </variables>\n");
 
 
-
-        // Règle pour check voicemail (123)
-        xmlBuilder.append("      <extension name=\"check_voicemail\">\n");
-        xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^123$\">\n");
-        xmlBuilder.append("          <action application=\"voicemail\" data=\"check ").append(domainName).append("\"/>\n");
-        xmlBuilder.append("        </condition>\n");
-        xmlBuilder.append("      </extension>\n");
 
         // 1. Appels internes tenant (extensions 4 chiffres)
         String extensionPattern = "^(\\d{4})$";
         xmlBuilder.append("      <extension name=\"local_call_within_tenant\">\n");
-       xmlBuilder.append("        <variable name=\"user_context\" value=\"").append(domainName).append("\"/>\n");
-       xmlBuilder.append("        <condition field=\"destination_number\" expression=\"").append(extensionPattern).append("\">\n");
+        xmlBuilder.append("        <variable name=\"user_context\" value=\"").append(domainName).append("\"/>\n");
+        xmlBuilder.append("        <condition field=\"destination_number\" expression=\"").append(extensionPattern).append("\">\n");
         xmlBuilder.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
         xmlBuilder.append("          <action application=\"bridge\" data=\"user/$1@").append(domainName).append("\"/>\n");
         xmlBuilder.append("          <action application=\"voicemail\" data=\"").append(domainName).append(" $1\"/>\n");
         xmlBuilder.append("        </condition>\n");
         xmlBuilder.append("      </extension>\n");
 
-        // 2. Gestion du DID entrant
-        System.out.println("Recherche DID pour numéro : " + destNumber);
-        Optional<DidNumber> didOpt = didNumberService.findActiveDid(destNumber);
-        System.out.println("DID trouvé ? " + didOpt.isPresent());
-
-        if (didOpt.isPresent()) {
-            DidNumber did = didOpt.get();
-            System.out.println("DID extension : " + did.getExtension());
-            System.out.println("DID SIP Profile ID : " + did.getSipProfile().getId());
-
-            Optional<SipProfile> sipOpt = sipUserService.findById(did.getSipProfile().getId());
-            System.out.println("SIP Profile trouvé ? " + sipOpt.isPresent());
-
-            if (sipOpt.isPresent()) {
-                SipProfile sipProfile = sipOpt.get();
-
-                System.out.println("Tenant du SIP Profile : " + sipProfile.getTenantId());
-                System.out.println("Tenant actuel : " + tenant.getId());
-
-                // Vérifie que le SIP profile appartient au tenant actuel
-                if (sipProfile.getTenantId().equals(tenant.getId())) {
-                    // Récupération de l'extension du SIP Profile
-                    String sipExtension = sipProfile.getExtension();
-
-                    // Extension DID
-                    xmlBuilder.append("      <extension name=\"incoming_did\">\n");
-                    xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^").append(destNumber).append("$\">\n");
-                    xmlBuilder.append("          <action application=\"bridge\" data=\"user/").append(sipExtension).append("@").append(domainName).append("\"/>\n");
-                    xmlBuilder.append("          <action application=\"voicemail\" data=\"").append(domainName).append(" ").append(sipExtension).append("\"/>\n");
-                    xmlBuilder.append("        </condition>\n");
-                    xmlBuilder.append("      </extension>\n");
-
-                    // --- NOUVEAU : Ajouter les CallGroups de ce SIP Profile ---
-                    List<CallGroup> callGroups = callGroupRepository.findByMembers_Id(sipProfile.getId());
-
-                    for (CallGroup group : callGroups) {
-                        String groupExtension = group.getExtension();
-                        if (groupExtension != null && !groupExtension.isEmpty()) {
-                            xmlBuilder.append("      <extension name=\"callgroup_").append(group.getId()).append("\">\n");
-                            xmlBuilder.append("        <condition field=\"destination_number\" expression=\"^").append(groupExtension).append("$\">\n");
-                            xmlBuilder.append("          <action application=\"bridge\" data=\"user/").append(sipExtension).append("@").append(domainName).append("\"/>\n");
-                            xmlBuilder.append("          <action application=\"voicemail\" data=\"").append(domainName).append(" ").append(sipExtension).append("\"/>\n");
-
-                            xmlBuilder.append("        </condition>\n");
-                            xmlBuilder.append("      </extension>\n");
-                        }
-                    }
-                } else {
-                    System.out.println("Le SIP Profile ne correspond pas au tenant courant.");
-                }
-            }
-        }
-
         // 3. Ajouter d'autres règles si besoin...
 
         xmlBuilder.append("    </context>\n");
         xmlBuilder.append("  </section>\n");
         xmlBuilder.append("</document>");
+        System.out.println("generateDialplanXml appelé avec domainName=" + domainName + " et destNumber=" + destNumber);
 
         return ResponseEntity.ok(xmlBuilder.toString());
     }
 
-
-   @GetMapping("/directory")
-    public ResponseEntity<String> generateDirectoryXml(
-            @RequestParam("domain") String domain,
-            @RequestParam("user") String user) {
+    public ResponseEntity<String> generateDirectoryXml(String domain,String user) {
 
         Optional<SipProfile> sipProfileOpt = sipUserService.findByDomainAndExtension(domain, user);
         if (sipProfileOpt.isEmpty() || !sipProfileOpt.get().isActive()) {
@@ -196,8 +114,7 @@ public class FreeSwitchConfigController {
                         "        <variables>\n" +
                         "          <variable name=\"toll_allow\" value=\"" + "domestic,international,local" + "\"/>\n" +
                         "          <variable name=\"accountcode\" value=\"" + (profile.getExtension() != null ? profile.getExtension() : "") + "\"/>\n" +
-                        "          <variable name=\"user_context\" value=\"" + "default" + "\"/>\n" +
-                        "          <variable name=\"effective_caller_id_name\" value=\"" + (profile.getDomainName() != null ? profile.getDomainName() : profile.getExtension()) + "\"/>\n" +
+                        "          <variable name=\"user_context\" value=\"" + (profile.getDomainName() != null ? profile.getDomainName() : "default") + "\"/>\n" +                        "          <variable name=\"effective_caller_id_name\" value=\"" + (profile.getDomainName() != null ? profile.getDomainName() : profile.getExtension()) + "\"/>\n" +
                         "          <variable name=\"effective_caller_id_number\" value=\"" + (profile.getExtension() != null ? profile.getExtension(): "") + "\"/>\n" +
                         "          <variable name=\"outbound_caller_id_name\" value=\"" + (profile.getUsername() != null ? profile.getUsername() : "") + "\"/>\n" +
                         "          <variable name=\"outbound_caller_id_number\" value=\"" + (profile.getExtension() != null ? profile.getExtension() : "") + "\"/>\n" +
@@ -205,52 +122,10 @@ public class FreeSwitchConfigController {
                         "      </user>\n" +
                         "    </domain>\n" +
                         "  </section>\n" +
-                "</document>";
+                        "</document>";
 
         System.out.println("XML généré :\n{}"+ xml);
         return ResponseEntity.ok(xml);
-    }
-
-    private ResponseEntity<String> generateConfigurationXml(String keyName, String profile) {
-        if ("sofia.conf".equalsIgnoreCase(keyName) && "internal".equalsIgnoreCase(profile)) {
-            String xml =
-                    "<document type=\"freeswitch/xml\">\n" +
-                            "  <section name=\"configuration\">\n" +
-                            "    <configuration name=\"sofia.conf\" description=\"SIP\">\n" +
-                            "      <profiles>\n" +
-                            "        <profile name=\"internal\">\n" +
-                            "          <gateways/>\n" +
-                            "          <domains>\n" +
-                            "            <domain name=\"all\" parse=\"true\"/>\n" +
-                            "          </domains>\n" +
-                            "          <settings>\n" +
-                            "            <param name=\"context\" value=\"default\"/>\n" +
-                            "            <param name=\"sip-port\" value=\"5060\"/>\n" +
-                            "            <param name=\"rtp-ip\" value=\"auto\"/>\n" +
-                            "            <param name=\"sip-ip\" value=\"auto\"/>\n" +
-                            "            <param name=\"ext-rtp-ip\" value=\"auto-nat\"/>\n" +
-                            "            <param name=\"ext-sip-ip\" value=\"auto-nat\"/>\n" +
-                            "            <param name=\"dialplan\" value=\"XML\"/>\n" +
-                            "            <param name=\"inbound-codec-prefs\" value=\"PCMU,PCMA,OPUS\"/>\n" +
-                            "            <param name=\"outbound-codec-prefs\" value=\"PCMU,PCMA,OPUS\"/>\n" +
-                            "            <param name=\"auth-calls\" value=\"true\"/>\n" +
-                            "            <param name=\"rtp-timeout-sec\" value=\"300\"/>\n" +
-                            "            <param name=\"rtp-hold-timeout-sec\" value=\"1800\"/>\n" +
-                            "            <param name=\"manage-presence\" value=\"true\"/>\n" +
-                            "            <param name=\"record-path\" value=\"/var/lib/freeswitch/recordings\"/>\n" +
-                            "            <param name=\"record-template\" value=\"${caller_id_number}_${uuid}.wav\"/>\n" +
-                            "            <param name=\"watchdog-enabled\" value=\"false\"/>\n" +
-                            "          </settings>\n" +
-                            "        </profile>\n" +
-                            "      </profiles>\n" +
-                            "    </configuration>\n" +
-                            "  </section>\n" +
-                            "</document>";
-
-            return ResponseEntity.ok(xml);
-        }
-
-        return notFoundXml();
     }
 
 
@@ -260,4 +135,143 @@ public class FreeSwitchConfigController {
         return ResponseEntity.ok(notFound);
     }
 
+}*/
+package com.example.tenant.Controllers;
+
+import com.example.tenant.Entities.SipProfile;
+import com.example.tenant.Entities.Tenant;
+import com.example.tenant.Services.SipUserService;
+import com.example.tenant.Services.TenantService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/freeswitch" )
+public class FreeSwitchConfigController {
+
+    @Autowired
+    private SipUserService sipUserService;
+
+    @Autowired
+    private TenantService tenantService;
+
+    @GetMapping("/config") // Une seule URL pour tout
+    public ResponseEntity<String> generateXml(
+            @RequestParam("section") String section,
+            @RequestParam(name = "context", required = false) String context,
+            @RequestParam(name = "destination_number", required = false) String destNumber,
+            @RequestParam(name = "domain", required = false) String domain,
+            @RequestParam(name = "user", required = false) String user) {
+
+        if ("dialplan".equals(section)) {
+            // Logique du dialplan ici, en utilisant domainName et destNumber
+            System.out.println("Requête pour DIALPLAN reçue pour le contexte : " + context);
+            return generateDialplanXml(context, destNumber); // Appelez votre méthode existante
+        }
+
+        if ("directory".equals(section)) {
+            // Logique du directory ici, en utilisant directoryDomain et directoryUser
+            System.out.println("Requête pour DIRECTORY reçue pour le domaine : " + domain);
+            return generateDirectoryXml(domain, user); // Appelez votre méthode existante
+        }
+
+        // Si la section n'est ni dialplan ni directory, retourner "not found"
+        return notFoundXml();
+    }
+
+    // Méthode privée pour le DIALPLAN. Pas d'annotations ici.
+    private ResponseEntity<String> generateDialplanXml(String paramContext,String paramDestNumber) {
+
+        Optional<Tenant> tenantOpt = tenantService.getByDomain(paramContext);
+
+        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
+            System.out.println("Tenant non trouvé ou inactif pour le domaine : " + paramContext);
+            return notFoundXml();
+        }
+
+        Tenant tenant = tenantOpt.get();
+        System.out.println("Tenant trouvé : " + tenant.getDomainName() + " (ID=" + tenant.getId() + ")");
+
+        StringBuilder xmlBuilder = new StringBuilder();
+        xmlBuilder.append("<document type=\"freeswitch/xml\">\n");
+        xmlBuilder.append("  <section name=\"dialplan\" description=\"Dynamic Dialplan\">\n");
+        xmlBuilder.append("    <context name=\"").append(paramContext).append("\">\n");
+
+
+        // Ajouter les variables ici
+        xmlBuilder.append("      <variables>\n");
+        xmlBuilder.append("          <variable name=\"user_context\" value=\"" + paramContext + "\"/>\n");
+        // On vérifie que paramDestNumber n'est pas null avant de l'ajouter
+        if (paramDestNumber != null) {
+            xmlBuilder.append("        <variable name=\"dialed_number\" value=\"").append(paramDestNumber).append("\"/>\n");
+        }
+        xmlBuilder.append("      </variables>\n");
+
+
+
+        // 1. Appels internes tenant (extensions 4 chiffres)
+        String extensionPattern = "^(\\d{4})$";
+        xmlBuilder.append("      <extension name=\"local_call_within_tenant\">\n");
+        xmlBuilder.append("        <condition field=\"destination_number\" expression=\"").append(extensionPattern).append("\">\n");
+        xmlBuilder.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
+        xmlBuilder.append("          <action application=\"bridge\" data=\"user/$1@").append(paramContext).append("\"/>\n");
+        xmlBuilder.append("          <action application=\"voicemail\" data=\"").append(paramContext).append(" $1\"/>\n");
+        xmlBuilder.append("        </condition>\n");
+        xmlBuilder.append("      </extension>\n");
+
+        // 3. Ajouter d'autres règles si besoin...
+
+        xmlBuilder.append("    </context>\n");
+        xmlBuilder.append("  </section>\n");
+        xmlBuilder.append("</document>");
+        System.out.println("generateDialplanXml appelé avec domainName=" + paramContext + " et destNumber=" + paramDestNumber);
+
+        return ResponseEntity.ok(xmlBuilder.toString());
+    }
+
+    // Méthode privée pour le DIRECTORY. Pas d'annotations ici.
+    private ResponseEntity<String> generateDirectoryXml(String domain,String user) {
+        if (domain == null || user == null) {
+            System.out.println("ERREUR : Le domaine ou l'utilisateur pour le directory est null.");
+            return notFoundXml();
+        }
+        Optional<SipProfile> sipProfileOpt = sipUserService.findByDomainAndExtension(domain, user);
+
+        if (sipProfileOpt.isEmpty() || !sipProfileOpt.get().isActive()) {
+            System.out.println("Profil SIP non trouvé pour " + user + "@" + domain);
+            return notFoundXml();
+        }
+
+        SipProfile profile = sipProfileOpt.get();
+        System.out.println("Profil SIP trouvé pour le directory : " + profile.getExtension());
+
+        String xml =
+                "<document type=\"freeswitch/xml\">\n" +
+                        "  <section name=\"directory\">\n" +
+                        "    <domain name=\"" + domain + "\">\n" +
+                        "      <user id=\"" + profile.getExtension() + "\">\n" +
+                        "        <params>\n" +
+                        "          <param name=\"password\" value=\"" + profile.getPassword() + "\"/>\n" +
+                        "        </params>\n" +
+                        "        <variables>\n" +
+                        "          <variable name=\"user_context\" value=\"" + profile.getDomainName() + "\"/>\n" +
+                        "        </variables>\n" +
+                        "      </user>\n" +
+                        "    </domain>\n" +
+                        "  </section>\n" +
+                        "</document>";
+        return ResponseEntity.ok(xml);
+    }
+
+    private ResponseEntity<String> notFoundXml() {
+        String notFound = "<document type=\"freeswitch/xml\"><section name=\"result\"><result status=\"not found\" /></section></document>";
+        return ResponseEntity.ok(notFound);
+    }
 }
+
