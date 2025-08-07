@@ -3,9 +3,11 @@ package com.example.tenant.Controllers;
 import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.SipProfile;
+import com.example.tenant.Entities.Trunk;
 import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.SipUserService;
+import com.example.tenant.Services.TrunkService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,9 @@ public class TenantController {
 
     @Autowired
     private SipUserService userSipService;
+    @Autowired
+    private TrunkService trunkService;
+
 
     @PostMapping
     public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,
@@ -169,6 +174,22 @@ public class TenantController {
                     .body(null);
         }
     }
+
+    @PostMapping("/trunks/tenant/{tenantId}")
+    public Trunk createTrunk(@PathVariable Long tenantId, @RequestBody Trunk trunk) {
+        return trunkService.createTrunk(trunk, tenantId);
+    }
+
+    @GetMapping("/trunks/tenant/{tenantId}")
+    public List<Trunk> getByTenant(@PathVariable Long tenantId) {
+        return trunkService.getTrunksByTenant(tenantId);
+    }
+
+    @DeleteMapping("/trunks/{id}")
+    public void delete(@PathVariable Long id) {
+        trunkService.deleteTrunk(id);
+    }
+
 
 
 }
