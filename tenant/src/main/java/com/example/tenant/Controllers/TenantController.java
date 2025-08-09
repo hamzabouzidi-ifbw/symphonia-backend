@@ -175,12 +175,12 @@ public class TenantController {
         }
     }
 
-    @PostMapping("/trunks/tenant/{tenantId}")
+    @PostMapping("/trunks/{tenantId}")
     public Trunk createTrunk(@PathVariable Long tenantId, @RequestBody Trunk trunk) {
         return trunkService.createTrunk(trunk, tenantId);
     }
 
-    @GetMapping("/trunks/tenant/{tenantId}")
+    @GetMapping("/trunks/getall/{tenantId}")
     public List<Trunk> getByTenant(@PathVariable Long tenantId) {
         return trunkService.getTrunksByTenant(tenantId);
     }
@@ -189,6 +189,8 @@ public class TenantController {
     public void delete(@PathVariable Long id) {
         trunkService.deleteTrunk(id);
     }
+
+
 
 
 

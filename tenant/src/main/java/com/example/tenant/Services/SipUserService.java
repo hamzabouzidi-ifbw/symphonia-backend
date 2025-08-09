@@ -33,8 +33,6 @@ public class SipUserService {
     @Autowired
     private LicenceServiceClient licenceServiceClient;
 
-    @Autowired
-    private LicenceServiceClient licenseServiceClient;
 
     @Autowired
     private EmailService emailService;
@@ -180,7 +178,7 @@ public class SipUserService {
                 .orElseThrow(() -> new RuntimeException("SIP User not found"));
 
         // 2. Récupérer la licence affectée à ce SIP user
-        List<LicenceAssignmentRequest> licences = licenseServiceClient.getLicencesByTenant(authToken, user.getTenantId());
+        List<LicenceAssignmentRequest> licences = licenceServiceClient.getLicencesByTenant(authToken, user.getTenantId());
 
         LicenceAssignmentRequest licence = licences.stream()
                 .filter(l -> l.getLicenceDefinitionId().equals(user.getLicenceDefinitionId()))
@@ -192,7 +190,7 @@ public class SipUserService {
         updateRequest.setLicenceDefinitionId(user.getLicenceDefinitionId());
         updateRequest.setUsedUsers(Math.max(licence.getUsedUsers() - 1, 0)); // pour éviter -1
 
-        licenseServiceClient.updateLicenceAssignment(user.getTenantId(), updateRequest, authToken);
+        licenceServiceClient.updateLicenceAssignment(user.getTenantId(), updateRequest, authToken);
 
         // 4. Supprimer le SIP user de la base
         sipProfileRepository.delete(user);

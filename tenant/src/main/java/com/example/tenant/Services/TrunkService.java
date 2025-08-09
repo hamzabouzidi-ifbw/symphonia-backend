@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -40,63 +41,49 @@ public class TrunkService {
         trunkRepository.deleteById(id);
         regenerateGatewayConfig();
     }
-
-/*
-    public void regenerateGatewayConfig() {
-        List<Trunk> trunks = trunkRepository.findAll();
-        StringBuilder xml = new StringBuilder();
-
-        xml.append("<include>\n");
-
-        for (Trunk trunk : trunks) {
-            if (!trunk.isActive()) continue;
-
-            xml.append("  <gateway name=\"").append(trunk.getName()).append("\">\n");
-            xml.append("    <param name=\"username\" value=\"").append(trunk.getUsername()).append("\"/>\n");
-            xml.append("    <param name=\"password\" value=\"").append(trunk.getPassword()).append("\"/>\n");
-            xml.append("    <param name=\"realm\" value=\"").append(trunk.getRealm()).append("\"/>\n");
-            xml.append("    <param name=\"proxy\" value=\"").append(trunk.getProxy()).append("\"/>\n");
-            xml.append("    <param name=\"register\" value=\"").append(trunk.isRegisterEnabled() ? "true" : "false").append("\"/>\n");
-            xml.append("  </gateway>\n");
-        }
-
-        xml.append("</include>");
-
-        try (FileWriter writer = new FileWriter("/etc/freeswitch/sip_profiles/external/gateways.xml")) {
-            writer.write(xml.toString());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to write gateway config", e);
-        }
-
+    private void reloadFreeSwitch() {
         try {
-            Runtime.getRuntime().exec("fs_cli -x 'reload mod_sofia'");
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to reload mod_sofia", e);
+            Runtime.getRuntime().exec("fs_cli -x 'reloadxml'");
+            Runtime.getRuntime().exec("fs_cli -x 'sofia profile external rescan'");
+            System.out.println("FreeSWITCH reloaded.");
+        } catch (IOException e) {
+            throw new RuntimeException("Impossible de recharger FreeSWITCH", e);
         }
     }
-*/
+    public void regenerateGatewayConfig() {
+        List<Tenant> tenants = tenantRepository.findAll();
 
-    public String regenerateGatewayConfig() {
-        List<Trunk> trunks = trunkRepository.findAll();
-        StringBuilder xml = new StringBuilder();
+        for (Tenant tenant : tenants) {
+            List<Trunk> trunks = trunkRepository.findByTenant(tenant);
 
-        xml.append("<include>\n");
+            StringBuilder xml = new StringBuilder();
+            xml.append("<include>\n");
 
-        for (Trunk trunk : trunks) {
-            if (!trunk.isActive()) continue;
+            for (Trunk trunk : trunks) {
+                if (!trunk.isActive()) continue;
+                xml.append("  <gateway name=\"").append(trunk.getName()).append("\">\n")
+                        .append("    <param name=\"username\" value=\"").append(trunk.getUsername()).append("\"/>\n")
+                        .append("    <param name=\"password\" value=\"").append(trunk.getPassword()).append("\"/>\n")
+                        .append("    <param name=\"realm\" value=\"").append(trunk.getRealm()).append("\"/>\n")
+                        .append("    <param name=\"proxy\" value=\"").append(trunk.getProxy()).append("\"/>\n")
+                        .append("    <param name=\"register\" value=\"").append(trunk.isRegisterEnabled() ? "true" : "false").append("\"/>\n")
+                        .append("  </gateway>\n");
+            }
 
-            xml.append("  <gateway name=\"").append(trunk.getName()).append("\">\n");
-            xml.append("    <param name=\"username\" value=\"").append(trunk.getUsername()).append("\"/>\n");
-            xml.append("    <param name=\"password\" value=\"").append(trunk.getPassword()).append("\"/>\n");
-            xml.append("    <param name=\"realm\" value=\"").append(trunk.getRealm()).append("\"/>\n");
-            xml.append("    <param name=\"proxy\" value=\"").append(trunk.getProxy()).append("\"/>\n");
-            xml.append("    <param name=\"register\" value=\"").append(trunk.isRegisterEnabled() ? "true" : "false").append("\"/>\n");
-            xml.append("  </gateway>\n");
+            xml.append("</include>");
+
+            try {
+                String filePath = "/etc/freeswitch/sip_profiles/external/" + tenant.getDomainName() + "_gateways.xml";
+                FileWriter writer = new FileWriter(filePath);
+                writer.write(xml.toString());
+                writer.close();
+            } catch (IOException e) {
+                throw new RuntimeException("Erreur d'écriture du fichier gateway pour " + tenant.getDomainName(), e);
+            }
         }
 
-        xml.append("</include>");
-
-        return xml.toString();
+        reloadFreeSwitch();
     }
+
 
 }
