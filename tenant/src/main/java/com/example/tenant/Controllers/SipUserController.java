@@ -105,40 +105,11 @@ public class SipUserController {
 
 
     /******************************************** Freeswitch *****************************************/
-    @PostMapping("/{sipUserId}/dids")
-    public ResponseEntity<?> assignDidToUser(@PathVariable Long sipUserId,@RequestBody Map<String, String> payload) {
 
-        String didNumber = payload.get("didNumber");
-        if (didNumber == null || didNumber.isEmpty()) {
-            return ResponseEntity.badRequest().body("Le numéro DID est requis.");
-        }
 
-        Optional<SipProfile> sipUserOpt = sipProfileRepository.findById(sipUserId);
-        if (sipUserOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur SIP non trouvé.");
-        }
 
-        DidNumber did = new DidNumber();
-        did.setDidNumber(didNumber);
-        did.setSipProfile(sipUserOpt.get());
 
-        try {
-            DidNumber saved = didNumberService.createDid(did);
-            return ResponseEntity.ok(saved);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-    @GetMapping("/{sipUserId}/did")
-    public ResponseEntity<?> getDidForUser(@PathVariable Long sipUserId) {
-        Optional<DidNumber> didOpt = didNumberService.findBySipProfileId(sipUserId);
 
-        if (didOpt.isPresent()) {
-            return ResponseEntity.ok(Map.of("didNumber", didOpt.get().getDidNumber()));
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aucun DID trouvé pour cet utilisateur.");
-        }
-    }
     // ✅ GET voicemail config by sipProfileId
     @GetMapping("/voice_mail/{sipProfileId}")
     public ResponseEntity<VoicemailConfigDto> getVoicemailConfig(@PathVariable Long sipProfileId) {

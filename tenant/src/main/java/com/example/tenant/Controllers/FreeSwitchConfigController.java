@@ -3,9 +3,11 @@ package com.example.tenant.Controllers;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.Trunk;
+import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.TrunkService;
+import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,9 +28,12 @@ public class FreeSwitchConfigController {
     private TenantService tenantService;
     @Autowired
     private TrunkService trunkService;
+    @Autowired
+    private DidNumberService didNumberService;
 
 
-    @RequestMapping(value = "/config", method = {RequestMethod.GET, RequestMethod.POST})
+
+ /*  @RequestMapping(value = "/config", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<String> generateXml(@RequestParam Map<String, String> allParams) {
 
         // Logger tous les paramètres reçus
@@ -84,69 +89,239 @@ public class FreeSwitchConfigController {
 
         System.out.println("Section non gérée: " + section + ", tagName: " + tagName + ", keyValue: " + keyValue);
         return notFoundXml();
-    }
+    }*/
 
+    @RequestMapping(value = "/config", method = {RequestMethod.GET, RequestMethod.POST})
+    public ResponseEntity<String> generateXml(@RequestParam Map<String, String> allParams) {
 
-private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
+        String section = allParams.get("section");
+        String tagName = allParams.get("tag_name");
+        String keyValue = allParams.get("key_value");
 
-    if (!StringUtils.hasText(contextName)) {
-        System.out.println("ERREUR: contextName est vide");
+        // Gestion des valeurs par défaut pour dialplan et directory
+        if ("dialplan".equals(section)) {
+            if (!StringUtils.hasText(tagName)) {
+                tagName = "context";
+            }
+            if (!StringUtils.hasText(keyValue)) {
+                keyValue = allParams.getOrDefault("Caller-Context", "");
+            }
+        }
+
+        if ("directory".equals(section)) {
+            if (!StringUtils.hasText(tagName)) {
+                tagName = "domain";
+            }
+            if (!StringUtils.hasText(keyValue)) {
+                keyValue = allParams.getOrDefault("domain", "");
+            }
+        }
+
+        // On récupère le domaine pertinent selon la section
+        String domainToCheck = null;
+        if ("directory".equals(section) && "domain".equals(tagName)) {
+            domainToCheck = keyValue;
+        } else if ("dialplan".equals(section) && "context".equals(tagName)) {
+            domainToCheck = keyValue;
+        }
+
+        // Filtrer uniquement les domaines présents et actifs en base
+        if (domainToCheck != null && !domainToCheck.isEmpty()) {
+            Optional<Tenant> tenantOpt = tenantService.getByDomain(domainToCheck);
+            if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
+                // Domaine non trouvé ou inactif : on ne traite pas et on ne log pas en détail
+                return notFoundXml();
+            }
+        }
+
+        // Maintenant on peut traiter selon la section
+
+        if ("dialplan".equals(section) && "context".equals(tagName)) {
+            String callerDestNumber = allParams.get("Caller-Destination-Number");
+            return generateDialplanXml(keyValue, callerDestNumber);
+        }
+
+        if ("directory".equals(section) && "domain".equals(tagName)) {
+            String user = allParams.get("user");
+            return generateDirectoryXml(keyValue, user);
+        }
+
+        if ("configuration".equals(section) && "configuration".equals(tagName) && "voicemail.conf".equals(keyValue)) {
+            String profileName = allParams.get("profile");
+            if (!StringUtils.hasText(profileName)) {
+                profileName = keyValue;
+            }
+            return generateVoicemailConfXml(profileName);
+        }
+
+        // Pour toutes les autres requêtes inconnues ou non gérées
         return notFoundXml();
     }
 
-    Optional<Tenant> tenantOpt = tenantService.getByDomain(contextName);
 
-    if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
-        System.out.println("Tenant non trouvé ou inactif pour: " + contextName);
-        return notFoundXml();
+/*
+    private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
+
+        if (!StringUtils.hasText(contextName)) {
+            System.out.println("ERREUR: contextName est vide");
+            return notFoundXml();
+        }
+
+        Optional<Tenant> tenantOpt = tenantService.getByDomain(contextName);
+
+        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
+            System.out.println("Tenant non trouvé ou inactif pour: " + contextName);
+            return notFoundXml();
+        }
+
+        Tenant tenant = tenantOpt.get();
+        System.out.println("Tenant trouvé: " + tenant.getDomainName());
+
+        // Récupérer la liste des trunks actifs du tenant
+        List<Trunk> trunks = trunkService.getTrunksByTenant(tenant.getId())
+                .stream()
+                .filter(Trunk::isActive)
+                .toList();
+
+        // Choisir un trunk (par exemple le premier actif)
+        String trunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
+
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+        xml.append("<document type=\"freeswitch/xml\">\n");
+        xml.append("  <section name=\"dialplan\">\n");
+        xml.append("    <context name=\"").append(contextName).append("\">\n");
+
+        // Extension appels internes
+        xml.append("      <extension name=\"local_calls\">\n");
+        xml.append("        <condition field=\"destination_number\" expression=\"^(\\d{4})$\">\n");
+        xml.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
+        xml.append("          <action application=\"bridge\" data=\"user/$1@").append(contextName).append("\"/>\n");
+        xml.append("          <action application=\"voicemail\" data=\"").append(contextName).append(" $1\"/>\n");
+        xml.append("        </condition>\n");
+        xml.append("      </extension>\n");
+
+        // Nouvelle extension appels sortants via trunk
+        // Supposons que les appels externes commencent par numéro
+        xml.append("      <extension name=\"outbound_calls\">\n");
+        xml.append("        <condition field=\"destination_number\" expression=\"^\\d+$\">\n");
+        xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
+        xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
+        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(trunkName).append("/$1\"/>\n");
+        xml.append("        </condition>\n");
+        xml.append("      </extension>\n");
+
+        xml.append("    </context>\n");
+        xml.append("  </section>\n");
+        xml.append("</document>");
+
+        return ResponseEntity.ok(xml.toString());
     }
+*/
 
-    Tenant tenant = tenantOpt.get();
-    System.out.println("Tenant trouvé: " + tenant.getDomainName());
+    private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
 
-    // Récupérer la liste des trunks actifs du tenant
-    List<Trunk> trunks = trunkService.getTrunksByTenant(tenant.getId())
-            .stream()
-            .filter(Trunk::isActive)
-            .toList();
+        if (!StringUtils.hasText(contextName)) {
+            System.out.println("ERREUR: contextName est vide");
+            return notFoundXml();
+        }
 
-    // Choisir un trunk (par exemple le premier actif)
-    String trunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
+        Optional<Tenant> tenantOpt = tenantService.getByDomain(contextName);
 
-    StringBuilder xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-    xml.append("<document type=\"freeswitch/xml\">\n");
-    xml.append("  <section name=\"dialplan\">\n");
-    xml.append("    <context name=\"").append(contextName).append("\">\n");
+        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
+            System.out.println("Tenant non trouvé ou inactif pour: " + contextName);
+            return notFoundXml();
+        }
 
-    // Extension appels internes
-    xml.append("      <extension name=\"local_calls\">\n");
-    xml.append("        <condition field=\"destination_number\" expression=\"^(\\d{4})$\">\n");
-    xml.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
-    xml.append("          <action application=\"bridge\" data=\"user/$1@").append(contextName).append("\"/>\n");
-    xml.append("          <action application=\"voicemail\" data=\"").append(contextName).append(" $1\"/>\n");
-    xml.append("        </condition>\n");
-    xml.append("      </extension>\n");
+        Tenant tenant = tenantOpt.get();
+        System.out.println("Tenant trouvé: " + tenant.getDomainName());
 
-    // Nouvelle extension appels sortants via trunk
-    // Supposons que les appels externes commencent par numéro
-    xml.append("      <extension name=\"outbound_calls\">\n");
-    xml.append("        <condition field=\"destination_number\" expression=\"^\\d+$\">\n");
-    xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
-    xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
-    xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(trunkName).append("/$1\"/>\n");
-    xml.append("        </condition>\n");
-    xml.append("      </extension>\n");
+        // Récupérer les trunks actifs
+        List<Trunk> trunks = trunkService.getTrunksByTenant(tenant.getId())
+                .stream()
+                .filter(Trunk::isActive)
+                .toList();
 
-    xml.append("    </context>\n");
-    xml.append("  </section>\n");
-    xml.append("</document>");
+        String trunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
 
-    return ResponseEntity.ok(xml.toString());
-}
+        // Récupérer les DIDs actifs
+        List<DidNumber> dids = didNumberService.getByTenant(tenant.getId())
+                .stream()
+                .filter(DidNumber::isActive)
+                .toList();
 
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+        xml.append("<document type=\"freeswitch/xml\">\n");
+        xml.append("  <section name=\"dialplan\">\n");
+        xml.append("    <context name=\"").append(contextName).append("\">\n");
 
+        // Extensions DID
+        for (DidNumber did : dids) {
+            xml.append("      <extension name=\"did_").append(did.getNumber()).append("\">\n");
+            xml.append("        <condition field=\"destination_number\" expression=\"^").append(did.getNumber()).append("$\">\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
 
+            switch (did.getDestinationType()) {
+                case USER:
+                    // destinationValue = extension SIP
+                    xml.append("          <action application=\"bridge\" data=\"user/")
+                            .append(did.getDestinationValue())
+                            .append("@").append(contextName).append("\"/>\n");
+                    break;
+                case IVR:
+                    // destinationValue = nom IVR
+                    xml.append("          <action application=\"transfer\" data=\"")
+                            .append(did.getDestinationValue())
+                            .append("@").append(contextName).append("\"/>\n");
+                    break;
+                case QUEUE:
+                    // destinationValue = nom queue
+                    xml.append("          <action application=\"transfer\" data=\"")
+                            .append(did.getDestinationValue())
+                            .append("@").append(contextName).append("\"/>\n");
+                    break;
+                default:
+                    // fallback : bridge vers trunk si possible
+                    if (!trunkName.isEmpty()) {
+                        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
+                                .append(trunkName).append("/")
+                                .append(did.getNumber()).append("\"/>\n");
+                    } else {
+                        System.out.println("Aucun trunk actif pour DID " + did.getNumber());
+                    }
+                    break;
+            }
+
+            xml.append("        </condition>\n");
+            xml.append("      </extension>\n");
+        }
+
+        // Appels internes
+        xml.append("      <extension name=\"local_calls\">\n");
+        xml.append("        <condition field=\"destination_number\" expression=\"^(\\d{4})$\">\n");
+        xml.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
+        xml.append("          <action application=\"bridge\" data=\"user/$1@").append(contextName).append("\"/>\n");
+        xml.append("          <action application=\"voicemail\" data=\"").append(contextName).append(" $1\"/>\n");
+        xml.append("        </condition>\n");
+        xml.append("      </extension>\n");
+
+        // Appels sortants
+        xml.append("      <extension name=\"outbound_calls\">\n");
+        xml.append("        <condition field=\"destination_number\" expression=\"^\\d+$\">\n");
+        xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
+        xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
+        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(trunkName).append("/$1\"/>\n");
+        xml.append("        </condition>\n");
+        xml.append("      </extension>\n");
+
+        xml.append("    </context>\n");
+        xml.append("  </section>\n");
+        xml.append("</document>");
+
+        return ResponseEntity.ok(xml.toString());
+    }
 
     private ResponseEntity<String> generateDirectoryXml(String domain, String user) {
 

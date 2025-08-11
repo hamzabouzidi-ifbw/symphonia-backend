@@ -1,57 +1,49 @@
 package com.example.tenant.Services.UsersConfig;
 
-import com.example.tenant.Dto.DidResponse;
-import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Repositories.DidNumberRepository;
-import com.example.tenant.Repositories.SipProfileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class DidNumberService {
 
-    @Autowired
-    private DidNumberRepository didNumberRepository;
+    private final DidNumberRepository didNumberRepository;
 
-    @Autowired
-    private SipProfileRepository sipProfileRepository;
-
-    public DidNumber createDid(DidNumber request) {
-        String didNumber = request.getDidNumber();
-        if (didNumber == null) {
-            throw new IllegalArgumentException("Le numéro DID ne peut pas être null.");
-        }
-
-        if (!didNumber.matches("^\\d{10,15}$")) {
-            throw new IllegalArgumentException("Format du numéro DID invalide. Il doit contenir entre 10 et 15 chiffres.");
-        }
-
-        Optional<DidNumber> existing = didNumberRepository.findByDidNumber(didNumber);
-        if (existing.isPresent()) {
-            throw new IllegalArgumentException("Ce numéro DID est déjà attribué.");
-        }
-
-        if (request.getSipProfile() == null || request.getSipProfile().getId() == null) {
-            throw new IllegalArgumentException("Un utilisateur SIP valide doit être associé.");
-        }
-
-        Optional<SipProfile> sipOpt = sipProfileRepository.findById(request.getSipProfile().getId());
-        if (sipOpt.isEmpty()) {
-            throw new IllegalArgumentException("Aucun utilisateur SIP correspondant trouvé.");
-        }
-
-        request.setSipProfile(sipOpt.get());
-        return didNumberRepository.save(request);
+    public DidNumberService(DidNumberRepository didNumberRepository) {
+        this.didNumberRepository = didNumberRepository;
     }
 
-    public Optional<DidNumber> findActiveDid(String didNumber) {
-        return didNumberRepository.findByDidNumber(didNumber);
-    }
-    public Optional<DidNumber> findBySipProfileId(Long sipProfileId) {
-        return didNumberRepository.findBySipProfileId(sipProfileId);
+    /** Récupérer tous les DIDs actifs d'un tenant */
+    public List<DidNumber> getByTenant(Long tenantId) {
+        return didNumberRepository.findByTenantIdAndActiveTrue(tenantId);
     }
 
+    /** Récupérer un DID par son ID */
+    public Optional<DidNumber> getById(Long id) {
+        return didNumberRepository.findById(id);
+    }
+
+    /** Créer ou mettre à jour un DID */
+    public DidNumber save(DidNumber didNumber) {
+        if (didNumberRepository.existsByNumber(didNumber.getNumber())) {
+            throw new IllegalArgumentException("Ce numéro DID existe déjà : " + didNumber.getNumber());
+        }
+        return didNumberRepository.save(didNumber);
+    }
+
+    /** Supprimer un DID par ID */
+    public void delete(Long id) {
+        didNumberRepository.deleteById(id);
+    }
+
+    /** Activer / désactiver un DID */
+    public DidNumber setActive(Long id, boolean active) {
+        DidNumber did = didNumberRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("DID introuvable"));
+        did.setActive(active);
+        return didNumberRepository.save(did);
+    }
 }

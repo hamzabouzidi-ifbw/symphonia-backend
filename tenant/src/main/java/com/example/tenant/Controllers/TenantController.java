@@ -4,10 +4,12 @@ import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Trunk;
+import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.TrunkService;
+import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -36,7 +38,8 @@ public class TenantController {
     @Autowired
     private TrunkService trunkService;
 
-
+    @Autowired
+    private DidNumberService didNumberService;
     @PostMapping
     public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,
                                           @RequestHeader("role") String role) {
@@ -175,6 +178,8 @@ public class TenantController {
         }
     }
 
+    /********************** Trunks ***********************************************/
+
     @PostMapping("/trunks/{tenantId}")
     public Trunk createTrunk(@PathVariable Long tenantId, @RequestBody Trunk trunk) {
         return trunkService.createTrunk(trunk, tenantId);
@@ -191,7 +196,81 @@ public class TenantController {
     }
 
 
+    /********************** DID ***********************************************/
 
+    /** 🔹 Créer un DID */
+    @PostMapping("/did/{tenantId}")
+    public ResponseEntity<?> createDid(
+            @PathVariable Long tenantId,
+            @RequestBody DidNumber didNumber,
+            @RequestHeader("role") String role
+    ) {
+        if (!"SUPER_ADMIN".equals(role) && !"ADMIN_TENANT".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Vous n'avez pas la permission de créer un DID"));
+        }
 
+        try {
+            // Associer le tenant
+            didNumber.getTenant().setId(tenantId);
+            DidNumber saved = didNumberService.save(didNumber);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** 🔹 Liste des DIDs actifs d'un tenant */
+    @GetMapping("/did/getByTenant/{tenantId}")
+    public ResponseEntity<List<DidNumber>> getDidByTenant(@PathVariable Long tenantId) {
+        List<DidNumber> list = didNumberService.getByTenant(tenantId);
+        return ResponseEntity.ok(list);
+    }
+
+    /** 🔹 Récupérer un DID par ID */
+    @GetMapping("/did/{id}")
+    public ResponseEntity<?> getById(@PathVariable Long id) {
+        Optional<DidNumber> did = didNumberService.getById(id);
+        return did.<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "DID introuvable")));
+    }
+
+    /** 🔹 Supprimer un DID */
+    @DeleteMapping("/deleteDid/{id}")
+    public ResponseEntity<?> deleteDid(
+            @PathVariable Long id,
+            @RequestHeader("role") String role
+    ) {
+        if (!"SUPER_ADMIN".equals(role) && !"ADMIN_TENANT".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Vous n'avez pas la permission de supprimer un DID"));
+        }
+
+        didNumberService.delete(id);
+        return ResponseEntity.ok(Map.of("message", "DID supprimé avec succès"));
+    }
+
+    /** 🔹 Activer/Désactiver un DID */
+    @PutMapping("/did/{id}/active")
+    public ResponseEntity<?> setActive(
+            @PathVariable Long id,
+            @RequestParam boolean active,
+            @RequestHeader("role") String role
+    ) {
+        if (!"SUPER_ADMIN".equals(role) && !"ADMIN_TENANT".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Vous n'avez pas la permission de modifier l'état d'un DID"));
+        }
+
+        try {
+            DidNumber updated = didNumberService.setActive(id, active);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 
 }
