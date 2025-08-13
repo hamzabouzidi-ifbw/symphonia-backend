@@ -202,7 +202,9 @@ public class TenantService {
         return tenantRepository.findByDomainName(domain);
     }
 
-
+    public Optional<Tenant> getTenantById(Long id) {
+        return tenantRepository.findById(id);
+    }
     @Transactional
     public void deactivateTenant(Long tenantId, String token) {
         Tenant tenant = tenantRepository.findById(tenantId)

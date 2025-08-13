@@ -4,10 +4,12 @@ import com.example.tenant.Dto.*;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Trunk;
+import com.example.tenant.Entities.TrunkPool;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.SipUserService;
+import com.example.tenant.Services.TrunkPoolService;
 import com.example.tenant.Services.TrunkService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,12 @@ public class TenantController {
 
     @Autowired
     private DidNumberService didNumberService;
+
+    @Autowired
+    private TrunkPoolService trunkPoolService;
+
+
+
     @PostMapping
     public ResponseEntity<?> createTenant(@RequestBody CreateTenantRequest request,
                                           @RequestHeader("role") String role) {
@@ -273,4 +281,28 @@ public class TenantController {
         }
     }
 
+
+    @PostMapping("/{tenantId}/trunk-pool")
+    public ResponseEntity<TrunkPool> createTrunkPool(
+            @PathVariable Long tenantId,
+            @RequestBody Map<String, Object> payload
+    ) {
+        Long trunkId = Long.valueOf(payload.get("trunkId").toString());
+        String countryCode = payload.get("countryCode").toString();
+        String areaCode = payload.get("areaCode").toString();
+        String localCode = payload.get("localCode").toString();
+        int startNumber = Integer.parseInt(payload.get("startNumber").toString());
+        int endNumber = Integer.parseInt(payload.get("endNumber").toString());
+
+        TrunkPool pool = trunkPoolService.createPoolForTenant(
+                tenantId, trunkId, countryCode, areaCode, localCode, startNumber, endNumber
+        );
+
+        return ResponseEntity.ok(pool);
+    }
+
+    @GetMapping("/trunk_pool/{tenantId}")
+    public List<TrunkPool> getPoolsByTenant(@PathVariable Long tenantId) {
+        return trunkPoolService.getActivePoolsByTenant(tenantId);
+    }
 }

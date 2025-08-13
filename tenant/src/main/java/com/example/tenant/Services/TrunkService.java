@@ -27,7 +27,6 @@ public class TrunkService {
         trunk.setTenant(tenant);
         Trunk savedTrunk = trunkRepository.save(trunk);
 
-        regenerateGatewayConfig(); // <== Génère le XML
         return savedTrunk;
     }
 
@@ -39,7 +38,6 @@ public class TrunkService {
 
     public void deleteTrunk(Long id) {
         trunkRepository.deleteById(id);
-        regenerateGatewayConfig();
     }
     private void reloadFreeSwitch() {
         try {
@@ -50,6 +48,7 @@ public class TrunkService {
             throw new RuntimeException("Impossible de recharger FreeSWITCH", e);
         }
     }
+/*
     public void regenerateGatewayConfig() {
         List<Tenant> tenants = tenantRepository.findAll();
 
@@ -84,6 +83,7 @@ public class TrunkService {
 
         reloadFreeSwitch();
     }
+*/
 
 
 }
