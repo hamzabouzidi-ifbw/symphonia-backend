@@ -27,6 +27,7 @@ public class Trunk {
     @JoinColumn(name = "tenant_id")
     private Tenant tenant;
 
+
 // Getters / Setters
 
 

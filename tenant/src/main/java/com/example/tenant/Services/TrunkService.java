@@ -1,7 +1,9 @@
 package com.example.tenant.Services;
 
+import com.example.tenant.Dto.TrunkWithPoolDTO;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.Trunk;
+import com.example.tenant.Entities.TrunkPool;
 import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Repositories.TrunkRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -48,7 +51,12 @@ public class TrunkService {
             throw new RuntimeException("Impossible de recharger FreeSWITCH", e);
         }
     }
-/*
+
+
+    public List<TrunkWithPoolDTO> getAllTrunksWithPools() {
+        return trunkRepository.findAllTrunksWithPools();
+    }
+    /*
     public void regenerateGatewayConfig() {
         List<Tenant> tenants = tenantRepository.findAll();
 
