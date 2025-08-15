@@ -6,6 +6,7 @@ import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Trunk;
 import com.example.tenant.Entities.TrunkPool;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
+import com.example.tenant.Repositories.DidNumberRepository;
 import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.SipUserService;
@@ -47,6 +48,8 @@ public class TenantController {
     @Autowired
     private TrunkPoolService trunkPoolService;
 
+    @Autowired
+    private DidNumberRepository didNumberRepository;
 
 
     @PostMapping
@@ -231,11 +234,28 @@ public class TenantController {
     }
 
     /** 🔹 Liste des DIDs actifs d'un tenant */
-    @GetMapping("/did/getByTenant/{tenantId}")
+   /* @GetMapping("/did/getByTenant/{tenantId}")
     public ResponseEntity<List<DidNumber>> getDidByTenant(@PathVariable Long tenantId) {
         List<DidNumber> list = didNumberService.getByTenant(tenantId);
         return ResponseEntity.ok(list);
+    }*/
+    @GetMapping("/did/getByTenant/{tenantId}")
+    public List<DidNumber> getDidsByTenant(@PathVariable Long tenantId) {
+        return didNumberService.getByTenant(tenantId);
     }
+
+   /* @GetMapping("/dids")
+    public List<DidNumber> getAllDids() {
+        return didNumberService.getAllDids();
+    }*/
+   @GetMapping("/dids")
+   public List<DidNumber> getAllDids() {
+       List<DidNumber> dids = didNumberRepository.findAll();
+       // Eager load tenant or map to include tenant details
+       dids.forEach(did -> did.getTenant().getTenantName()); // si nécessaire
+       return dids;
+   }
+
 
     /** 🔹 Récupérer un DID par ID */
     @GetMapping("/did/{id}")

@@ -26,24 +26,23 @@ public class DidNumberService {
         this.trunkPoolService = trunkPoolService;
     }
 
-
-    /** Récupérer tous les DIDs actifs d'un tenant */
+    /** Récupérer tous les DIDs d'un tenant */
     public List<DidNumber> getByTenant(Long tenantId) {
-        return didNumberRepository.findByTenantIdAndActiveTrue(tenantId);
+        return didNumberRepository.findByTenantId(tenantId);
     }
 
+
+    /** Récupérer tous les DIDs actifs d'un tenant */
+    /*public List<DidNumber> getByTenant(Long tenantId) {
+        return didNumberRepository.findByTenantIdAndActiveTrue(tenantId);
+    }
+*/
     /** Récupérer un DID par son ID */
     public Optional<DidNumber> getById(Long id) {
         return didNumberRepository.findById(id);
     }
 
-    /** Créer ou mettre à jour un DID */
-    /*public DidNumber save(DidNumber didNumber) {
-        if (didNumberRepository.existsByNumber(didNumber.getNumber())) {
-            throw new IllegalArgumentException("Ce numéro DID existe déjà : " + didNumber.getNumber());
-        }
-        return didNumberRepository.save(didNumber);
-    }*/
+
 
     public DidNumber save(DidNumber didNumber) {
         // Vérification unicité
@@ -73,5 +72,8 @@ public class DidNumberService {
                 .orElseThrow(() -> new IllegalArgumentException("DID introuvable"));
         did.setActive(active);
         return didNumberRepository.save(did);
+    }
+    public List<DidNumber> getAllDids() {
+        return didNumberRepository.findAll();
     }
 }
