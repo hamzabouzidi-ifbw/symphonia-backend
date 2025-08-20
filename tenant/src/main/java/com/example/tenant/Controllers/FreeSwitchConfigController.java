@@ -35,66 +35,6 @@ public class FreeSwitchConfigController {
     @Autowired
     private TrunkPoolService trunkPoolService;
 
-
-
- /*  @RequestMapping(value = "/config", method = {RequestMethod.GET, RequestMethod.POST})
-    public ResponseEntity<String> generateXml(@RequestParam Map<String, String> allParams) {
-
-        // Logger tous les paramètres reçus
-        System.out.println("=== PARAMETRES REÇUS ===");
-        allParams.forEach((key, value) -> System.out.println(key + " = " + value));
-
-        String section = allParams.get("section");
-        String tagName = allParams.get("tag_name");
-        String keyValue = allParams.get("key_value");
-
-        // Fallbacks pour DIALPLAN et DIRECTORY
-        if ("dialplan".equals(section)) {
-            if (!StringUtils.hasText(tagName)) {
-                tagName = "context";
-            }
-            if (!StringUtils.hasText(keyValue)) {
-                keyValue = allParams.getOrDefault("Caller-Context", "");
-            }
-        }
-
-        if ("directory".equals(section)) {
-            if (!StringUtils.hasText(tagName)) {
-                tagName = "domain";
-            }
-            if (!StringUtils.hasText(keyValue)) {
-                keyValue = allParams.getOrDefault("domain", "");
-            }
-        }
-
-        // 📞 DIALPLAN
-        if ("dialplan".equals(section) && "context".equals(tagName)) {
-            String callerDestNumber = allParams.get("Caller-Destination-Number");
-            System.out.println("Requête DIALPLAN pour contexte: " + keyValue + ", destination: " + callerDestNumber);
-            return generateDialplanXml(keyValue, callerDestNumber);
-        }
-
-        // 👤 DIRECTORY
-        if ("directory".equals(section) && "domain".equals(tagName)) {
-            String user = allParams.get("user");
-            System.out.println("Requête DIRECTORY pour domaine: " + keyValue + ", user: " + user);
-            return generateDirectoryXml(keyValue, user);
-        }
-
-        // ⚙️ CONFIGURATION: voicemail.conf
-        if ("configuration".equals(section) && "configuration".equals(tagName) && StringUtils.hasText(keyValue) && "voicemail.conf".equals(keyValue)) {
-            String profileName = allParams.get("profile");
-            if (!StringUtils.hasText(profileName)) {
-                profileName = allParams.get("key_value"); // fallback
-            }
-            System.out.println("Requête CONFIGURATION pour voicemail.conf, profil=" + profileName);
-            return generateVoicemailConfXml(profileName);
-        }
-
-        System.out.println("Section non gérée: " + section + ", tagName: " + tagName + ", keyValue: " + keyValue);
-        return notFoundXml();
-    }*/
-
     @RequestMapping(value = "/config", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<String> generateXml(@RequestParam Map<String, String> allParams) {
 
@@ -157,116 +97,16 @@ public class FreeSwitchConfigController {
             }
             return generateVoicemailConfXml(profileName);
         }
+        if ("configuration".equals(section) && "configuration".equals(tagName) && "sofia.conf".equals(keyValue)) {
+            String profileName = allParams.getOrDefault("profile", "external");
+            return generateSofiaConfXml(profileName);
+        }
 
         // Pour toutes les autres requêtes inconnues ou non gérées
         return notFoundXml();
     }
 
-/*
-    private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
 
-        if (!StringUtils.hasText(contextName)) {
-            System.out.println("ERREUR: contextName est vide");
-            return notFoundXml();
-        }
-
-        Optional<Tenant> tenantOpt = tenantService.getByDomain(contextName);
-
-        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
-            System.out.println("Tenant non trouvé ou inactif pour: " + contextName);
-            return notFoundXml();
-        }
-
-        Tenant tenant = tenantOpt.get();
-        System.out.println("Tenant trouvé: " + tenant.getDomainName());
-
-        // Récupérer les trunks actifs
-        List<Trunk> trunks = trunkService.getTrunksByTenant(tenant.getId())
-                .stream()
-                .filter(Trunk::isActive)
-                .toList();
-
-        String trunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
-
-        // Récupérer les DIDs actifs
-        List<DidNumber> dids = didNumberService.getByTenant(tenant.getId())
-                .stream()
-                .filter(DidNumber::isActive)
-                .toList();
-
-        StringBuilder xml = new StringBuilder();
-        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-        xml.append("<document type=\"freeswitch/xml\">\n");
-        xml.append("  <section name=\"dialplan\">\n");
-        xml.append("    <context name=\"").append(contextName).append("\">\n");
-
-        // Extensions DID
-        for (DidNumber did : dids) {
-            xml.append("      <extension name=\"did_").append(did.getNumber()).append("\">\n");
-            xml.append("        <condition field=\"destination_number\" expression=\"^").append(did.getNumber()).append("$\">\n");
-            xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
-            xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
-
-            switch (did.getDestinationType()) {
-                case USER:
-                    // destinationValue = extension SIP
-                    xml.append("          <action application=\"bridge\" data=\"user/")
-                            .append(did.getDestinationValue())
-                            .append("@").append(contextName).append("\"/>\n");
-                    break;
-                case IVR:
-                    // destinationValue = nom IVR
-                    xml.append("          <action application=\"transfer\" data=\"")
-                            .append(did.getDestinationValue())
-                            .append("@").append(contextName).append("\"/>\n");
-                    break;
-                case QUEUE:
-                    // destinationValue = nom queue
-                    xml.append("          <action application=\"transfer\" data=\"")
-                            .append(did.getDestinationValue())
-                            .append("@").append(contextName).append("\"/>\n");
-                    break;
-                default:
-                    // fallback : bridge vers trunk si possible
-                    if (!trunkName.isEmpty()) {
-                        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
-                                .append(trunkName).append("/")
-                                .append(did.getNumber()).append("\"/>\n");
-                    } else {
-                        System.out.println("Aucun trunk actif pour DID " + did.getNumber());
-                    }
-                    break;
-            }
-
-            xml.append("        </condition>\n");
-            xml.append("      </extension>\n");
-        }
-
-        // Appels internes
-        xml.append("      <extension name=\"local_calls\">\n");
-        xml.append("        <condition field=\"destination_number\" expression=\"^(\\d{4})$\">\n");
-        xml.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
-        xml.append("          <action application=\"bridge\" data=\"user/$1@").append(contextName).append("\"/>\n");
-        xml.append("          <action application=\"voicemail\" data=\"").append(contextName).append(" $1\"/>\n");
-        xml.append("        </condition>\n");
-        xml.append("      </extension>\n");
-
-        // Appels sortants
-        xml.append("      <extension name=\"outbound_calls\">\n");
-        xml.append("        <condition field=\"destination_number\" expression=\"^\\d+$\">\n");
-        xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
-        xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
-        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(trunkName).append("/$1\"/>\n");
-        xml.append("        </condition>\n");
-        xml.append("      </extension>\n");
-
-        xml.append("    </context>\n");
-        xml.append("  </section>\n");
-        xml.append("</document>");
-
-        return ResponseEntity.ok(xml.toString());
-    }
-*/
 
     private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
 
@@ -451,6 +291,44 @@ public class FreeSwitchConfigController {
         xml.append("    </configuration>\n");
         xml.append("  </section>\n");
         xml.append("</document>");
+
+        return ResponseEntity.ok(xml.toString());
+    }
+
+    private ResponseEntity<String> generateSofiaConfXml(String profileName) {
+        // Récupérer tous les trunks actifs
+        List<Trunk> trunks = trunkService.getAllActiveTrunks();
+
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+        xml.append("<document type=\"freeswitch/xml\">\n");
+        xml.append("  <section name=\"configuration\">\n");
+        xml.append("    <configuration name=\"sofia.conf\" description=\"Sofia SIP\">\n");
+        xml.append("      <profiles>\n");
+        xml.append("        <profile name=\"").append(profileName).append("\">\n");
+        xml.append("          <gateways>\n");
+
+        for (Trunk trunk : trunks) {
+            xml.append("            <gateway name=\"").append(trunk.getName()).append("\">\n");
+            xml.append("              <param name=\"username\" value=\"").append(trunk.getUsername()).append("\"/>\n");
+            xml.append("              <param name=\"password\" value=\"").append(trunk.getPassword()).append("\"/>\n");
+            xml.append("              <param name=\"realm\" value=\"").append(trunk.getRealm()).append("\"/>\n");
+           /* xml.append("              <param name=\"proxy\" value=\"").append(trunk.getProxy()).append(":").append(trunk.getProxyPort()).append("\"/>\n");
+            xml.append("              <param name=\"register\" value=\"").append(trunk.isRegisterEnabled() ? "true" : "false").append("\"/>\n");
+            xml.append("              <param name=\"expire-seconds\" value=\"").append(trunk.getExpireSeconds()).append("\"/>\n");
+            xml.append("              <param name=\"retry-seconds\" value=\"").append(trunk.getRetrySeconds()).append("\"/>\n");
+            xml.append("              <param name=\"from-user\" value=\"").append(trunk.getFromUser()).append("\"/>\n");
+            xml.append("              <param name=\"from-domain\" value=\"").append(trunk.getFromDomain()).append("\"/>\n");
+            xml.append("              <param name=\"register-transport\" value=\"").append(trunk.getRegisterTransport()).append("\"/>\n");*/
+            xml.append("            </gateway>\n");
+        }
+
+        xml.append("          </gateways>\n");
+        xml.append("        </profile>\n");
+        xml.append("      </profiles>\n");
+        xml.append("    </configuration>\n");
+        xml.append("  </section>\n");
+        xml.append("</document>\n");
 
         return ResponseEntity.ok(xml.toString());
     }

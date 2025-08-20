@@ -8,4 +8,3 @@ import java.util.List;
 public interface TrunkPoolRepository extends JpaRepository<TrunkPool, Long> {
     List<TrunkPool> findByTenantIdAndActiveTrue(Long tenantId);
 }
-

@@ -26,5 +26,6 @@ public interface TrunkRepository extends JpaRepository<Trunk, Long> {
         JOIN TrunkPool p ON p.trunk.id = t.id
     """)
     List<TrunkWithPoolDTO> findAllTrunksWithPools();
-}
+    List<Trunk> findByActiveTrue();
 
+}

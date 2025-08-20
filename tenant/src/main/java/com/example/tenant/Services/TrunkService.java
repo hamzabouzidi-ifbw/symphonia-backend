@@ -56,6 +56,7 @@ public class TrunkService {
     public List<TrunkWithPoolDTO> getAllTrunksWithPools() {
         return trunkRepository.findAllTrunksWithPools();
     }
+    public List<Trunk> getAllActiveTrunks() { return trunkRepository.findByActiveTrue(); }
     /*
     public void regenerateGatewayConfig() {
         List<Tenant> tenants = tenantRepository.findAll();
