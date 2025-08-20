@@ -11,8 +11,19 @@ public class TrunkPoolCreateRequest {
 
     private List<TrunkRequest> trunks;
 
+    private TrunkRequest singleTrunk;  // pour un seul trunk
+
+
     // getters / setters
 
+
+    public TrunkRequest getSingleTrunk() {
+        return singleTrunk;
+    }
+
+    public void setSingleTrunk(TrunkRequest singleTrunk) {
+        this.singleTrunk = singleTrunk;
+    }
 
     public String getCountryCode() {
         return countryCode;

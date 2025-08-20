@@ -1,11 +1,21 @@
 package com.example.tenant.Entities;
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
 @Table(name = "trunk_pool")
+@JsonIdentityInfo(
+        generator = ObjectIdGenerators.PropertyGenerator.class,
+        property = "id")
 public class TrunkPool {
 
     @Id
@@ -33,8 +43,23 @@ public class TrunkPool {
 
     private boolean active = true;
 
+
+    @OneToMany(mappedBy = "trunkPool", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonBackReference
+    private List<Trunk> trunks = new ArrayList<>();
+
+
+
     // Getters / setters / equals / hashCode...
 
+
+    public List<Trunk> getTrunks() {
+        return trunks;
+    }
+
+    public void setTrunks(List<Trunk> trunks) {
+        this.trunks = trunks;
+    }
 
     public Long getId() {
         return id;

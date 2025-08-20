@@ -204,69 +204,14 @@ public class TenantController {
     public void delete(@PathVariable Long id) {
         trunkService.deleteTrunk(id);
     }
-    @PostMapping("/{tenantId}/trunk-pool")
-    public ResponseEntity<TrunkPool> createTrunkPool(
-            @PathVariable Long tenantId,
-            @RequestBody Map<String, Object> payload
-    ) {
-        Long trunkId = Long.valueOf(payload.get("trunkId").toString());
-        String countryCode = payload.get("countryCode").toString();
-        String areaCode = payload.get("areaCode").toString();
-        String localCode = payload.get("localCode").toString();
-        int startNumber = Integer.parseInt(payload.get("startNumber").toString());
-        int endNumber = Integer.parseInt(payload.get("endNumber").toString());
-
-        TrunkPool pool = trunkPoolService.createPoolForTenant(
-                tenantId, trunkId, countryCode, areaCode, localCode, startNumber, endNumber
-        );
-
-        return ResponseEntity.ok(pool);
-    }
-
-    @GetMapping("/trunk_pool/{tenantId}")
-    public List<TrunkPool> getPoolsByTenant(@PathVariable Long tenantId) {
-        return trunkPoolService.getActivePoolsByTenant(tenantId);
-    }
-
 
     @PostMapping("/{tenantId}/trunk-with-pool")
-    public ResponseEntity<?> createTrunkWithPool(
+    public ResponseEntity<TrunkPool> createTrunkPool(
             @PathVariable Long tenantId,
-            @RequestBody Map<String, Object> payload
+            @RequestBody TrunkPoolCreateRequest request
     ) {
-        try {
-            // Créer le trunk
-            Trunk trunk = new Trunk();
-            trunk.setName(payload.get("trunkName").toString());
-            trunk.setUsername(payload.get("username").toString());
-            trunk.setPassword(payload.get("password").toString());
-            trunk.setProxy(payload.get("proxy").toString());
-            trunk.setRealm(payload.get("realm").toString());
-
-            Trunk savedTrunk = trunkService.createTrunk(trunk, tenantId);
-
-            // Créer le trunk pool
-            String countryCode = payload.get("countryCode").toString();
-            String areaCode = payload.get("areaCode").toString();
-            String localCode = payload.get("localCode").toString();
-            int startNumber = Integer.parseInt(payload.get("startNumber").toString());
-            int endNumber = Integer.parseInt(payload.get("endNumber").toString());
-
-            TrunkPool pool = trunkPoolService.createPoolForTenant(
-                    tenantId, savedTrunk.getId(), countryCode, areaCode, localCode, startNumber, endNumber
-            );
-
-            // Retourner les deux objets
-            Map<String, Object> response = new HashMap<>();
-            response.put("trunk", savedTrunk);
-            response.put("trunkPool", pool);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        TrunkPool trunkPool = trunkPoolService.createTrunkPool(tenantId, request);
+        return ResponseEntity.ok(trunkPool);
     }
 
     @GetMapping("/trunks-with-pools")
