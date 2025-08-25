@@ -1,6 +1,8 @@
 package com.example.tenant.Dto;
 
 public class TrunkWithPoolDTO {
+    private Long poolId;
+
     private String trunkName;
     private String username;
     private String proxy;

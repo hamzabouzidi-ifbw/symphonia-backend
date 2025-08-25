@@ -190,19 +190,9 @@ public class TenantController {
     /********************** Trunks ***********************************************/
 
 
-    @PostMapping("/trunks/{tenantId}")
-    public Trunk createTrunk(@PathVariable Long tenantId, @RequestBody Trunk trunk) {
-        return trunkService.createTrunk(trunk, tenantId);
-    }
-
     @GetMapping("/trunks/getall/{tenantId}")
     public List<Trunk> getByTenant(@PathVariable Long tenantId) {
         return trunkService.getTrunksByTenant(tenantId);
-    }
-
-    @DeleteMapping("/trunks/{id}")
-    public void delete(@PathVariable Long id) {
-        trunkService.deleteTrunk(id);
     }
 
     @PostMapping("/{tenantId}/trunk-with-pool")
@@ -219,7 +209,11 @@ public class TenantController {
         return trunkService.getAllTrunksWithPools();
     }
 
-
+    @DeleteMapping("/delete_trunk/{poolId}")
+    public ResponseEntity<Void> deleteTrunkPool(@PathVariable Long poolId) {
+        trunkPoolService.deleteTrunkPool(poolId);
+        return ResponseEntity.noContent().build();
+    }
     /********************** DID ***********************************************/
 
     /** 🔹 Créer un DID */

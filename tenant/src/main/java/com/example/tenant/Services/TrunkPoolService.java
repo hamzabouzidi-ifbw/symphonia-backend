@@ -140,6 +140,11 @@ public class TrunkPoolService {
         return trunk;
     }
 
-
+    @Transactional
+    public void deleteTrunkPool(Long poolId) {
+        TrunkPool pool = trunkPoolRepository.findById(poolId)
+                .orElseThrow(() -> new RuntimeException("TrunkPool not found"));
+        trunkPoolRepository.delete(pool);
+    }
 
 }
