@@ -171,30 +171,10 @@ public class TrunkPoolService {
         trunkRepository.delete(trunk);
     }
 
+    public List<Trunk> getActiveTrunksByTenant(Long tenantId) {
+        return trunkRepository.findByTenantIdAndActiveTrue(tenantId);
+    }
 
-
-
-
-
-    //configuration dids
-    /*public boolean isNumberInTenantPool(Long tenantId, String number) {
-        List<TrunkPool> pools = trunkPoolRepository.findByTenantIdAndActiveTrue(tenantId);
-
-        for (TrunkPool pool : pools) {
-            String prefix = pool.getCountryCode() + pool.getAreaCode() + pool.getLocalCode();
-            if (number.startsWith(prefix)) {
-                try {
-                    int localPart = Integer.parseInt(number.substring(prefix.length()));
-                    if (localPart >= pool.getStartNumber() && localPart <= pool.getEndNumber()) {
-                        return true;
-                    }
-                } catch (NumberFormatException ignored) {
-                    // Ce n'est pas un numéro valide
-                }
-            }
-        }
-        return false;
-    }*/
     //configuration freeswitch
     public List<TrunkPool> getActivePoolsByTenant(Long tenantId) {
         return trunkPoolRepository.findByTenantIdAndActiveTrue(tenantId);

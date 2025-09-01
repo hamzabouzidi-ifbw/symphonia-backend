@@ -10,5 +10,6 @@ import java.util.List;
 public interface TrunkRepository extends JpaRepository<Trunk, Long> {
     List<Trunk> findByTenant(Tenant tenant);
 
+    List<Trunk> findByTenantIdAndActiveTrue(Long tenantId);
 
 }

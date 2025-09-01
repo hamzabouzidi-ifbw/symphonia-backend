@@ -1,7 +1,11 @@
 package com.example.tenant.Entities.UsersConfig;
 
 import com.example.tenant.Entities.Tenant;
+import com.example.tenant.Entities.Trunk;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
+
 @Entity
 @Table(name = "did_numbers")
 public class DidNumber {
@@ -11,11 +15,17 @@ public class DidNumber {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String number; // Le DID public (E.164)
+    private String number; // DID public (E.164)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
+    @JsonIgnore
     private Tenant tenant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trunk_id", nullable = false)
+    @JsonIgnore
+    private Trunk trunk;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "destination_type", nullable = false, length = 20)
@@ -27,9 +37,7 @@ public class DidNumber {
     @Column(nullable = false)
     private boolean active = true;
 
-    // Getters / Setters
-    // ...
-
+    // --- Getters / Setters ---
 
     public Long getId() {
         return id;
@@ -53,6 +61,14 @@ public class DidNumber {
 
     public void setTenant(Tenant tenant) {
         this.tenant = tenant;
+    }
+
+    public Trunk getTrunk() {
+        return trunk;
+    }
+
+    public void setTrunk(Trunk trunk) {
+        this.trunk = trunk;
     }
 
     public DestinationType getDestinationType() {

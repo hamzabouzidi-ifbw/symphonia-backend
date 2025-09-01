@@ -4,11 +4,13 @@ import com.example.tenant.Entities.SipProfile;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.Trunk;
 import com.example.tenant.Entities.TrunkPool;
+import com.example.tenant.Entities.UsersConfig.CallGroup;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.TenantService;
 import com.example.tenant.Services.TrunkPoolService;
 import com.example.tenant.Services.TrunkService;
+import com.example.tenant.Services.UsersConfig.CallGroupService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +19,9 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/freeswitch")
@@ -34,66 +38,10 @@ public class FreeSwitchConfigController {
     private DidNumberService didNumberService;
     @Autowired
     private TrunkPoolService trunkPoolService;
+    @Autowired
+    private CallGroupService callGroupService;
 
 
-
- /*  @RequestMapping(value = "/config", method = {RequestMethod.GET, RequestMethod.POST})
-    public ResponseEntity<String> generateXml(@RequestParam Map<String, String> allParams) {
-
-        // Logger tous les paramètres reçus
-        System.out.println("=== PARAMETRES REÇUS ===");
-        allParams.forEach((key, value) -> System.out.println(key + " = " + value));
-
-        String section = allParams.get("section");
-        String tagName = allParams.get("tag_name");
-        String keyValue = allParams.get("key_value");
-
-        // Fallbacks pour DIALPLAN et DIRECTORY
-        if ("dialplan".equals(section)) {
-            if (!StringUtils.hasText(tagName)) {
-                tagName = "context";
-            }
-            if (!StringUtils.hasText(keyValue)) {
-                keyValue = allParams.getOrDefault("Caller-Context", "");
-            }
-        }
-
-        if ("directory".equals(section)) {
-            if (!StringUtils.hasText(tagName)) {
-                tagName = "domain";
-            }
-            if (!StringUtils.hasText(keyValue)) {
-                keyValue = allParams.getOrDefault("domain", "");
-            }
-        }
-
-        // 📞 DIALPLAN
-        if ("dialplan".equals(section) && "context".equals(tagName)) {
-            String callerDestNumber = allParams.get("Caller-Destination-Number");
-            System.out.println("Requête DIALPLAN pour contexte: " + keyValue + ", destination: " + callerDestNumber);
-            return generateDialplanXml(keyValue, callerDestNumber);
-        }
-
-        // 👤 DIRECTORY
-        if ("directory".equals(section) && "domain".equals(tagName)) {
-            String user = allParams.get("user");
-            System.out.println("Requête DIRECTORY pour domaine: " + keyValue + ", user: " + user);
-            return generateDirectoryXml(keyValue, user);
-        }
-
-        // ⚙️ CONFIGURATION: voicemail.conf
-        if ("configuration".equals(section) && "configuration".equals(tagName) && StringUtils.hasText(keyValue) && "voicemail.conf".equals(keyValue)) {
-            String profileName = allParams.get("profile");
-            if (!StringUtils.hasText(profileName)) {
-                profileName = allParams.get("key_value"); // fallback
-            }
-            System.out.println("Requête CONFIGURATION pour voicemail.conf, profil=" + profileName);
-            return generateVoicemailConfXml(profileName);
-        }
-
-        System.out.println("Section non gérée: " + section + ", tagName: " + tagName + ", keyValue: " + keyValue);
-        return notFoundXml();
-    }*/
 
     @RequestMapping(value = "/config", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<String> generateXml(@RequestParam Map<String, String> allParams) {
@@ -162,101 +110,96 @@ public class FreeSwitchConfigController {
         return notFoundXml();
     }
 
-/*
-    private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
 
-        if (!StringUtils.hasText(contextName)) {
-            System.out.println("ERREUR: contextName est vide");
-            return notFoundXml();
-        }
+   /* private ResponseEntity<String> generateDialplanXml(String contextName, String destNumberForLog) {
+        if (!StringUtils.hasText(contextName)) return notFoundXml();
 
         Optional<Tenant> tenantOpt = tenantService.getByDomain(contextName);
-
-        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
-            System.out.println("Tenant non trouvé ou inactif pour: " + contextName);
-            return notFoundXml();
-        }
-
+        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) return notFoundXml();
         Tenant tenant = tenantOpt.get();
-        System.out.println("Tenant trouvé: " + tenant.getDomainName());
 
-        // Récupérer les trunks actifs
         List<Trunk> trunks = trunkService.getTrunksByTenant(tenant.getId())
-                .stream()
-                .filter(Trunk::isActive)
-                .toList();
+                .stream().filter(Trunk::isActive).toList();
+        String defaultTrunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
 
-        String trunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
-
-        // Récupérer les DIDs actifs
         List<DidNumber> dids = didNumberService.getByTenant(tenant.getId())
-                .stream()
-                .filter(DidNumber::isActive)
-                .toList();
+                .stream().filter(DidNumber::isActive).toList();
+
+        List<TrunkPool> pools = trunkPoolService.getActivePoolsByTenant(tenant.getId());
+
+        List<CallGroup> groups = callGroupService.getAllCallGroupsWithMembers()
+                .stream().filter(CallGroup::isActive).toList();
 
         StringBuilder xml = new StringBuilder();
-        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         xml.append("<document type=\"freeswitch/xml\">\n");
         xml.append("  <section name=\"dialplan\">\n");
         xml.append("    <context name=\"").append(contextName).append("\">\n");
 
-        // Extensions DID
+        // ---------- Groupes d’appel avec ringall ----------
+        for (CallGroup group : groups) {
+            if (!StringUtils.hasText(group.getExtension()) || group.getMembers() == null || group.getMembers().isEmpty()) continue;
+
+            for (var member : group.getMembers()) {
+                if (member == null || !StringUtils.hasText(member.getExtension())) continue;
+
+                xml.append("      <extension name=\"callgroup_").append(group.getExtension()).append("_").append(member.getExtension()).append("\">\n");
+                xml.append("        <condition field=\"destination_number\" expression=\"^").append(group.getExtension()).append("$\">\n");
+                xml.append("          <action application=\"bridge\" data=\"user/").append(member.getExtension()).append("@").append(contextName).append("\"/>\n");
+                xml.append("        </condition>\n");
+                xml.append("      </extension>\n");
+            }
+        }
+
+        // ---------- DIDs explicites ----------
         for (DidNumber did : dids) {
+            if (!StringUtils.hasText(did.getNumber())) continue;
+
             xml.append("      <extension name=\"did_").append(did.getNumber()).append("\">\n");
             xml.append("        <condition field=\"destination_number\" expression=\"^").append(did.getNumber()).append("$\">\n");
-            xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
-            xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
 
             switch (did.getDestinationType()) {
-                case USER:
-                    // destinationValue = extension SIP
-                    xml.append("          <action application=\"bridge\" data=\"user/")
-                            .append(did.getDestinationValue())
-                            .append("@").append(contextName).append("\"/>\n");
-                    break;
-                case IVR:
-                    // destinationValue = nom IVR
-                    xml.append("          <action application=\"transfer\" data=\"")
-                            .append(did.getDestinationValue())
-                            .append("@").append(contextName).append("\"/>\n");
-                    break;
-                case QUEUE:
-                    // destinationValue = nom queue
-                    xml.append("          <action application=\"transfer\" data=\"")
-                            .append(did.getDestinationValue())
-                            .append("@").append(contextName).append("\"/>\n");
-                    break;
-                default:
-                    // fallback : bridge vers trunk si possible
-                    if (!trunkName.isEmpty()) {
+                case USER -> xml.append("          <action application=\"bridge\" data=\"user/")
+                        .append(did.getDestinationValue()).append("@").append(contextName).append("\"/>\n");
+                case IVR, QUEUE -> xml.append("          <action application=\"transfer\" data=\"")
+                        .append(did.getDestinationValue()).append("@").append(contextName).append("\"/>\n");
+                default -> {
+                    if (!defaultTrunkName.isEmpty()) {
                         xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
-                                .append(trunkName).append("/")
-                                .append(did.getNumber()).append("\"/>\n");
+                                .append(defaultTrunkName).append("/").append(did.getNumber()).append("\"/>\n");
                     } else {
-                        System.out.println("Aucun trunk actif pour DID " + did.getNumber());
+                        xml.append("          <action application=\"respond\" data=\"480 Temporarily Unavailable\"/>\n");
                     }
-                    break;
+                }
             }
-
             xml.append("        </condition>\n");
             xml.append("      </extension>\n");
         }
 
-        // Appels internes
+        // ---------- DIDs via pools ----------
+        for (TrunkPool pool : pools) {
+            for (int num = pool.getStartNumber(); num <= pool.getEndNumber(); num++) {
+                String did = pool.getCountryCode() + pool.getAreaCode() + pool.getLocalCode()
+                        + String.format("%04d", num);
+                xml.append("      <extension name=\"pool_did_").append(did).append("\">\n");
+                xml.append("        <condition field=\"destination_number\" expression=\"^").append(did).append("$\">\n");
+
+                String gw = (pool.getTrunk() != null && pool.getTrunk().isActive()) ? pool.getTrunk().getName() : defaultTrunkName;
+
+                if (StringUtils.hasText(gw)) {
+                    xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(gw).append("/").append(did).append("\"/>\n");
+                } else {
+                    xml.append("          <action application=\"respond\" data=\"480 Temporarily Unavailable\"/>\n");
+                }
+                xml.append("        </condition>\n");
+                xml.append("      </extension>\n");
+            }
+        }
+
+        // ---------- Appels internes ----------
         xml.append("      <extension name=\"local_calls\">\n");
         xml.append("        <condition field=\"destination_number\" expression=\"^(\\d{4})$\">\n");
-        xml.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
         xml.append("          <action application=\"bridge\" data=\"user/$1@").append(contextName).append("\"/>\n");
-        xml.append("          <action application=\"voicemail\" data=\"").append(contextName).append(" $1\"/>\n");
-        xml.append("        </condition>\n");
-        xml.append("      </extension>\n");
-
-        // Appels sortants
-        xml.append("      <extension name=\"outbound_calls\">\n");
-        xml.append("        <condition field=\"destination_number\" expression=\"^\\d+$\">\n");
-        xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
-        xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
-        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(trunkName).append("/$1\"/>\n");
         xml.append("        </condition>\n");
         xml.append("      </extension>\n");
 
@@ -264,9 +207,12 @@ public class FreeSwitchConfigController {
         xml.append("  </section>\n");
         xml.append("</document>");
 
+        if (StringUtils.hasText(destNumberForLog)) {
+            System.out.println("[XML-CURL] DIALPLAN context=" + contextName + " dest=" + destNumberForLog);
+        }
+
         return ResponseEntity.ok(xml.toString());
-    }
-*/
+    }*/
 
     private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
 
@@ -285,21 +231,18 @@ public class FreeSwitchConfigController {
         System.out.println("Tenant trouvé: " + tenant.getDomainName());
 
         // Récupérer les trunks actifs
-        List<Trunk> trunks = trunkService.getTrunksByTenant(tenant.getId())
-                .stream()
-                .filter(Trunk::isActive)
-                .toList();
+        List<Trunk> trunks = trunkPoolService.getActiveTrunksByTenant(tenant.getId());
+        String defaultTrunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
 
-        String trunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
-
-        // Récupérer les DIDs actifs existants
-        List<DidNumber> dids = didNumberService.getByTenant(tenant.getId())
-                .stream()
-                .filter(DidNumber::isActive)
-                .toList();
+        // Récupérer les DIDs actifs
+        List<DidNumber> dids = didNumberService.getActiveDidsByTenant(tenant.getId());
 
         // Récupérer les pools actifs
         List<TrunkPool> pools = trunkPoolService.getActivePoolsByTenant(tenant.getId());
+        // Groupes d'appel
+        List<CallGroup> groups = callGroupService.getAllCallGroupsWithMembers()
+                .stream().filter(CallGroup::isActive).toList();
+
 
         StringBuilder xml = new StringBuilder();
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
@@ -307,6 +250,26 @@ public class FreeSwitchConfigController {
         xml.append("  <section name=\"dialplan\">\n");
         xml.append("    <context name=\"").append(contextName).append("\">\n");
 
+        // ---------- Groupes d’appel ----------
+        for (CallGroup group : groups) {
+            if (!StringUtils.hasText(group.getExtension())) continue;
+            if (group.getMembers() == null || group.getMembers().isEmpty()) continue;
+
+            String endpoints = group.getMembers().stream()
+                    .filter(Objects::nonNull)
+                    .map(m -> "user/" + m.getExtension() + "@" + contextName)
+                    .collect(Collectors.joining(","));
+
+            String chanVars = "{ignore_early_media=true,ringback=${us-ring},originate_timeout=25,leg_timeout=25,hangup_after_bridge=true,continue_on_fail=true}";
+
+            xml.append("      <extension name=\"callgroup_").append(group.getExtension()).append("\">\n");
+            xml.append("        <condition field=\"destination_number\" expression=\"^").append(group.getExtension()).append("$\">\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
+            xml.append("          <action application=\"bridge\" data=\"").append(chanVars).append(endpoints).append("\"/>\n");
+            xml.append("        </condition>\n");
+            xml.append("      </extension>\n");
+        }
         // ====== Gestion des DIDs individuels ======
         for (DidNumber did : dids) {
             xml.append("      <extension name=\"did_").append(did.getNumber()).append("\">\n");
@@ -327,9 +290,9 @@ public class FreeSwitchConfigController {
                             .append("@").append(contextName).append("\"/>\n");
                     break;
                 default:
-                    if (!trunkName.isEmpty()) {
+                    if (!defaultTrunkName.isEmpty()) {
                         xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
-                                .append(trunkName).append("/").append(did.getNumber()).append("\"/>\n");
+                                .append(defaultTrunkName).append("/").append(did.getNumber()).append("\"/>\n");
                     }
                     break;
             }
@@ -339,22 +302,28 @@ public class FreeSwitchConfigController {
 
         // ====== Gestion des DIDs depuis les pools ======
         for (TrunkPool pool : pools) {
+            List<Trunk> poolTrunks = pool.getTrunks().stream()
+                    .filter(Trunk::isActive)
+                    .toList();
+
             for (int num = pool.getStartNumber(); num <= pool.getEndNumber(); num++) {
-                String did = pool.getCountryCode() + pool.getAreaCode() + pool.getLocalCode()
+                String didNumber = pool.getCountryCode() + pool.getAreaCode() + pool.getLocalCode()
                         + String.format("%04d", num); // padding à 4 chiffres
 
-                xml.append("      <extension name=\"pool_did_").append(did).append("\">\n");
-                xml.append("        <condition field=\"destination_number\" expression=\"^").append(did).append("$\">\n");
+                xml.append("      <extension name=\"pool_did_").append(didNumber).append("\">\n");
+                xml.append("        <condition field=\"destination_number\" expression=\"^").append(didNumber).append("$\">\n");
                 xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
                 xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
 
-                if (pool.getTrunk() != null && pool.getTrunk().isActive()) {
+                if (!poolTrunks.isEmpty()) {
+                    // On prend le premier trunk actif du pool
                     xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
-                            .append(pool.getTrunk().getName()).append("/").append(did).append("\"/>\n");
-                } else if (!trunkName.isEmpty()) {
+                            .append(poolTrunks.get(0).getName()).append("/").append(didNumber).append("\"/>\n");
+                } else if (!defaultTrunkName.isEmpty()) {
                     xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
-                            .append(trunkName).append("/").append(did).append("\"/>\n");
+                            .append(defaultTrunkName).append("/").append(didNumber).append("\"/>\n");
                 }
+
                 xml.append("        </condition>\n");
                 xml.append("      </extension>\n");
             }
@@ -375,7 +344,7 @@ public class FreeSwitchConfigController {
         xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
         xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
         xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
-                .append(trunkName).append("/$1\"/>\n");
+                .append(defaultTrunkName).append("/$1\"/>\n");
         xml.append("        </condition>\n");
         xml.append("      </extension>\n");
 
@@ -385,6 +354,7 @@ public class FreeSwitchConfigController {
 
         return ResponseEntity.ok(xml.toString());
     }
+
 
     private ResponseEntity<String> generateDirectoryXml(String domain, String user) {
 

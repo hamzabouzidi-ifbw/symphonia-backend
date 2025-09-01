@@ -11,12 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface DidNumberRepository extends JpaRepository<DidNumber, Long> {
-    List<DidNumber> findByTenantId(Long tenantId);
-
-    List<DidNumber> findByTenantAndActiveTrue(Tenant tenant);
-    Optional<DidNumber> findByNumberAndActiveTrue(String number);
-    List<DidNumber> findByTenantIdAndActiveTrue(Long tenantId);
     boolean existsByNumber(String number);
+    List<DidNumber> findByTenantIdAndActiveTrue(Long tenantId);
+
 
 
 
