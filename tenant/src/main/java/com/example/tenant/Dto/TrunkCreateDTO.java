@@ -1,100 +1,38 @@
+package com.example.tenant.Dto;
 
-package com.example.tenant.Entities;
-
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-
-import javax.persistence.*;
-
-
-@Entity
-@Table(name = "trunks")
-@JsonIdentityInfo(
-        generator = ObjectIdGenerators.PropertyGenerator.class,
-        property = "id")
-public class Trunk {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    // ----------- Informations générales -----------
-    private String name;       // Nom du trunk (interne)
+public class TrunkCreateDTO {
+    private String name;
     private boolean active = true;
-
-    // ----------- Authentification -----------
-    private String username;   // Nom d’utilisateur SIP
-    private String password;   // Mot de passe SIP
-    private String realm;      // Domaine d’authentification
-
-    // ----------- Connectivité -----------
-    private String proxy;          // Proxy SIP
-    private boolean registerEnabled = true; // true si enregistrement nécessaire
-    private String registerProxy;  // Proxy spécifique pour enregistrement
-    private String outboundProxy;  // Proxy spécifique pour appels sortants
-    private Integer proxyPort;     // Port SIP (ex: 5060, 5962…)
-
-    // ----------- Paramètres d’enregistrement -----------
-    private Integer expireSeconds = 3600;   // Timer enregistrement
-    private Integer retrySeconds = 30;      // Intervalle retry
-    private String registerTransport = "UDP"; // UDP, TCP, TLS
-
-    // ----------- Présentation d’appel -----------
+    private String username;
+    private String password;
+    private String realm;
+    private String proxy;
+    private boolean registerEnabled = true;
+    private String registerProxy;
+    private String outboundProxy;
+    private Integer proxyPort;
+    private Integer expireSeconds = 3600;
+    private Integer retrySeconds = 30;
+    private String registerTransport = "UDP";
     private String fromUser;
     private String fromDomain;
     private Boolean callerIdInFrom = true;
-    private String extension; // Extension interne associée
-
-    // ----------- Transport et codecs -----------
+    private String extension;
     private String contactParams;
-    private String inboundCodecPrefs;   // ex: "PCMU,PCMA,G729"
-    private String outboundCodecPrefs;  // ex: "PCMU,PCMA,G729"
-
-    // ----------- Sécurité et chiffrement -----------
-    private Boolean secureSip = false;  // TLS
-    private Boolean secureRtp = false;  // SRTP
+    private String inboundCodecPrefs;
+    private String outboundCodecPrefs;
+    private Boolean secureSip = false;
+    private Boolean secureRtp = false;
     private String sslCaCert;
     private String sslCert;
     private String sslKey;
-
-    // ----------- Timers -----------
     private Integer rtpTimeoutSec = 300;
     private Integer minimumSessionExpires = 90;
     private Integer sessionTimeout = 1800;
     private Boolean sessionTimers = true;
 
-    // ----------- Multi-tenant -----------
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id")
-    private Tenant tenant;
+    // getters / setters (tu peux générer automatiquement dans IDE)
 
-    // Ajout relation inverse
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trunk_pool_id") // nom de la colonne dans la base
-    @JsonIgnore
-    private TrunkPool trunkPool;
-
-    // Getter et Setter
-    public TrunkPool getTrunkPool() {
-        return trunkPool;
-    }
-
-    public void setTrunkPool(TrunkPool trunkPool) {
-        this.trunkPool = trunkPool;
-    }
-
-    //getters and setters
-
-
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public String getName() {
         return name;
@@ -326,13 +264,5 @@ public class Trunk {
 
     public void setSessionTimers(Boolean sessionTimers) {
         this.sessionTimers = sessionTimers;
-    }
-
-    public Tenant getTenant() {
-        return tenant;
-    }
-
-    public void setTenant(Tenant tenant) {
-        this.tenant = tenant;
     }
 }

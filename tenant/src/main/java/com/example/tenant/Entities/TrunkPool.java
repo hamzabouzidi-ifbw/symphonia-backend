@@ -25,15 +25,11 @@ public class TrunkPool {
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
-    // Trunk associé (optionnel si un pool peut regrouper plusieurs trunks)
-    @ManyToOne
-    @JoinColumn(name = "trunk_id")
-    private Trunk trunk;
 
     // Code pays (CC), code d'area (AC), code local (LC)
-    private String countryCode; // CC
-    private String areaCode;    // AC
-    private String localCode;   // LC
+    private int countryCode; // CC
+    private int areaCode;    // AC
+    private int localCode;   // LC
 
     // Intervalle du numéro
     private int startNumber; // ex: 33
@@ -41,10 +37,10 @@ public class TrunkPool {
 
     private boolean active = true;
 
-
-    @OneToMany(mappedBy = "trunkPool", cascade = CascadeType.ALL,orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "trunkPool", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonBackReference
     private List<Trunk> trunks = new ArrayList<>();
+
 
 
 
@@ -75,35 +71,27 @@ public class TrunkPool {
         this.tenant = tenant;
     }
 
-    public Trunk getTrunk() {
-        return trunk;
-    }
-
-    public void setTrunk(Trunk trunk) {
-        this.trunk = trunk;
-    }
-
-    public String getCountryCode() {
+    public int getCountryCode() {
         return countryCode;
     }
 
-    public void setCountryCode(String countryCode) {
+    public void setCountryCode(int countryCode) {
         this.countryCode = countryCode;
     }
 
-    public String getAreaCode() {
+    public int getAreaCode() {
         return areaCode;
     }
 
-    public void setAreaCode(String areaCode) {
+    public void setAreaCode(int areaCode) {
         this.areaCode = areaCode;
     }
 
-    public String getLocalCode() {
+    public int getLocalCode() {
         return localCode;
     }
 
-    public void setLocalCode(String localCode) {
+    public void setLocalCode(int localCode) {
         this.localCode = localCode;
     }
 

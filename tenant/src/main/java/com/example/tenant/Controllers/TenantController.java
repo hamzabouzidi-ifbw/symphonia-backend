@@ -195,29 +195,81 @@ public class TenantController {
         return trunkService.getTrunksByTenant(tenantId);
     }
 
-    @PostMapping("/{tenantId}/trunk-with-pool")
-    public ResponseEntity<TrunkPool> createTrunkPool(
+
+
+    @PostMapping("/add-pool/{tenantId}")
+    public ResponseEntity<TrunkPool> createPool(
             @PathVariable Long tenantId,
-            @RequestBody TrunkPoolCreateRequest request
-    ) {
-        TrunkPool trunkPool = trunkPoolService.createTrunkPool(tenantId, request);
-        return ResponseEntity.ok(trunkPool);
+            @RequestBody TrunkPoolCreateDTO dto) {
+
+        TrunkPool pool = trunkPoolService.createTrunkPool(
+                tenantId,
+                dto.getCountryCode(),
+                dto.getAreaCode(),
+                dto.getLocalCode(),
+                dto.getStartNumber(),
+                dto.getEndNumber()
+        );
+
+        return ResponseEntity.ok(pool);
     }
 
-    @GetMapping("/trunks-with-pools")
-    public List<TrunkWithPoolDTO> getTrunksWithPools() {
-        return trunkService.getAllTrunksWithPools();
+    @PostMapping("/{poolId}/add-trunk")
+    public ResponseEntity<Trunk> addTrunkToPool(
+            @PathVariable Long poolId,
+            @RequestBody TrunkCreateDTO dto) {
+
+        Trunk trunk = trunkPoolService.createTrunkForPool(poolId, dto);
+        return ResponseEntity.ok(trunk);
     }
 
-    @DeleteMapping("/delete_trunk/{poolId}")
-    public ResponseEntity<Void> deleteTrunkPool(@PathVariable Long poolId) {
+    @PutMapping("/pool/{poolId}")
+    public ResponseEntity<TrunkPool> updatePool(
+            @PathVariable Long poolId,
+            @RequestBody TrunkPoolCreateDTO dto) {
+        return ResponseEntity.ok(trunkPoolService.updateTrunkPool(poolId, dto));
+    }
+
+    @PutMapping("/trunk/{trunkId}")
+    public ResponseEntity<Trunk> updateTrunk(
+            @PathVariable Long trunkId,
+            @RequestBody TrunkCreateDTO dto) {
+        return ResponseEntity.ok(trunkPoolService.updateTrunk(trunkId, dto));
+    }
+    // Afficher un TrunkPool par ID
+   /* @GetMapping("/{poolId}")
+    public ResponseEntity<TrunkPool> getTrunkPool(@PathVariable Long poolId) {
+        TrunkPool pool = trunkPoolService.getTrunkPool(poolId);
+        return ResponseEntity.ok(pool);
+    }
+*/
+    // Afficher tous les TrunkPools
+    @GetMapping("/pools")
+    public ResponseEntity<List<TrunkPool>> getAllTrunkPools() {
+        List<TrunkPool> pools = trunkPoolService.getAllTrunkPools();
+        return ResponseEntity.ok(pools);
+    }
+
+    @GetMapping("/{poolId}/trunks")
+    public ResponseEntity<List<Trunk>> getTrunksOfPool(@PathVariable Long poolId) {
+        List<Trunk> trunks = trunkPoolService.getTrunksByTrunkPool(poolId);
+        return ResponseEntity.ok(trunks);
+    }
+
+    @DeleteMapping("/delete-pool/{poolId}")
+    public ResponseEntity<String> deleteTrunkPool(@PathVariable Long poolId) {
         trunkPoolService.deleteTrunkPool(poolId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("TrunkPool et tous les Trunks associés ont été supprimés");
+    }
+    @DeleteMapping("/delete-trunk/{trunkId}")
+    public ResponseEntity<String> deleteTrunk(@PathVariable Long trunkId) {
+        trunkPoolService.deleteTrunk(trunkId);
+        return ResponseEntity.ok("Trunk supprimé avec succès");
     }
     /********************** DID ***********************************************/
 
     /** 🔹 Créer un DID */
-    @PostMapping("/did/{tenantId}")
+   /* @PostMapping("/did/{tenantId}")
     public ResponseEntity<?> createDid(
             @PathVariable Long tenantId,
             @RequestBody DidNumber didNumber,
@@ -237,7 +289,7 @@ public class TenantController {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
         }
-    }
+    }*/
 
     @GetMapping("/did/getByTenant/{tenantId}")
     public List<DidNumber> getDidsByTenant(@PathVariable Long tenantId) {

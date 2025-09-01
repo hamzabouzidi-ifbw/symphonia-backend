@@ -1,40 +1,183 @@
 package com.example.tenant.Services;
 
-import com.example.tenant.Dto.TrunkPoolCreateRequest;
+import com.example.tenant.Dto.TrunkCreateDTO;
+import com.example.tenant.Dto.TrunkPoolCreateDTO;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.Trunk;
 import com.example.tenant.Entities.TrunkPool;
 import com.example.tenant.Repositories.TenantRepository;
 import com.example.tenant.Repositories.TrunkPoolRepository;
 import com.example.tenant.Repositories.TrunkRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class TrunkPoolService {
+    @Autowired
+    private TrunkPoolRepository trunkPoolRepository;
 
-    private final TrunkPoolRepository trunkPoolRepository;
-    private final TrunkRepository trunkRepository;
-    private final TenantRepository tenantRepository;
+    @Autowired
+    private TrunkRepository trunkRepository;
+    @Autowired
+    private TenantRepository tenantRepository;
 
-    public TrunkPoolService(TrunkPoolRepository trunkPoolRepository,
-                            TrunkRepository trunkRepository,
-                            TenantRepository tenantRepository) {
-        this.trunkPoolRepository = trunkPoolRepository;
-        this.trunkRepository = trunkRepository;
-        this.tenantRepository = tenantRepository;
+    // Créer un pool pour un tenant
+    public TrunkPool createTrunkPool(Long tenantId,
+                                     int countryCode,
+                                     int areaCode,
+                                     int localCode,
+                                     int startNumber,
+                                     int endNumber) {
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new RuntimeException("Tenant not found"));
+
+        TrunkPool trunkPool = new TrunkPool();
+        trunkPool.setTenant(tenant);
+        trunkPool.setCountryCode(countryCode);
+        trunkPool.setAreaCode(areaCode);
+        trunkPool.setLocalCode(localCode);
+        trunkPool.setStartNumber(startNumber);
+        trunkPool.setEndNumber(endNumber);
+        trunkPool.setActive(true);
+
+        return trunkPoolRepository.save(trunkPool);
     }
 
-    public List<TrunkPool> getActivePoolsByTenant(Long tenantId) {
-        return trunkPoolRepository.findByTenantIdAndActiveTrue(tenantId);
+    // Ajouter un ou plusieurs trunks à un pool
+    public Trunk createTrunkForPool(Long poolId, TrunkCreateDTO dto) {
+        TrunkPool trunkPool = trunkPoolRepository.findById(poolId)
+                .orElseThrow(() -> new RuntimeException("TrunkPool not found"));
+
+        Trunk trunk = new Trunk();
+        trunk.setTrunkPool(trunkPool);
+        trunk.setTenant(trunkPool.getTenant()); // <-- Ici, on set le tenant automatiquement
+        trunk.setName(dto.getName());
+        trunk.setActive(dto.isActive());
+        trunk.setUsername(dto.getUsername());
+        trunk.setPassword(dto.getPassword());
+        trunk.setRealm(dto.getRealm());
+        trunk.setProxy(dto.getProxy());
+        trunk.setRegisterEnabled(dto.isRegisterEnabled());
+        trunk.setRegisterProxy(dto.getRegisterProxy());
+        trunk.setOutboundProxy(dto.getOutboundProxy());
+        trunk.setProxyPort(dto.getProxyPort());
+        trunk.setExpireSeconds(dto.getExpireSeconds());
+        trunk.setRetrySeconds(dto.getRetrySeconds());
+        trunk.setRegisterTransport(dto.getRegisterTransport());
+        trunk.setFromUser(dto.getFromUser());
+        trunk.setFromDomain(dto.getFromDomain());
+        trunk.setCallerIdInFrom(dto.getCallerIdInFrom());
+        trunk.setExtension(dto.getExtension());
+        trunk.setContactParams(dto.getContactParams());
+        trunk.setInboundCodecPrefs(dto.getInboundCodecPrefs());
+        trunk.setOutboundCodecPrefs(dto.getOutboundCodecPrefs());
+        trunk.setSecureSip(dto.getSecureSip());
+        trunk.setSecureRtp(dto.getSecureRtp());
+        trunk.setSslCaCert(dto.getSslCaCert());
+        trunk.setSslCert(dto.getSslCert());
+        trunk.setSslKey(dto.getSslKey());
+        trunk.setRtpTimeoutSec(dto.getRtpTimeoutSec());
+        trunk.setMinimumSessionExpires(dto.getMinimumSessionExpires());
+        trunk.setSessionTimeout(dto.getSessionTimeout());
+        trunk.setSessionTimers(dto.getSessionTimers());
+
+        Trunk savedTrunk = trunkRepository.save(trunk);
+
+        trunkPool.getTrunks().add(savedTrunk);
+        trunkPoolRepository.save(trunkPool);
+
+        return savedTrunk;
+    }
+
+    public TrunkPool updateTrunkPool(Long poolId, TrunkPoolCreateDTO dto) {
+        TrunkPool trunkPool = trunkPoolRepository.findById(poolId)
+                .orElseThrow(() -> new RuntimeException("TrunkPool not found"));
+
+        trunkPool.setCountryCode(dto.getCountryCode());
+        trunkPool.setAreaCode(dto.getAreaCode());
+        trunkPool.setLocalCode(dto.getLocalCode());
+        trunkPool.setStartNumber(dto.getStartNumber());
+        trunkPool.setEndNumber(dto.getEndNumber());
+
+        return trunkPoolRepository.save(trunkPool);
+    }
+
+    public Trunk updateTrunk(Long trunkId, TrunkCreateDTO dto) {
+        Trunk trunk = trunkRepository.findById(trunkId)
+                .orElseThrow(() -> new RuntimeException("Trunk not found"));
+
+        trunk.setName(dto.getName());
+        trunk.setActive(dto.isActive());
+        trunk.setUsername(dto.getUsername());
+        trunk.setPassword(dto.getPassword());
+        trunk.setRealm(dto.getRealm());
+        trunk.setProxy(dto.getProxy());
+        trunk.setRegisterEnabled(dto.isRegisterEnabled());
+        trunk.setRegisterProxy(dto.getRegisterProxy());
+        trunk.setOutboundProxy(dto.getOutboundProxy());
+        trunk.setProxyPort(dto.getProxyPort());
+        trunk.setExpireSeconds(dto.getExpireSeconds());
+        trunk.setRetrySeconds(dto.getRetrySeconds());
+        trunk.setRegisterTransport(dto.getRegisterTransport());
+        trunk.setFromUser(dto.getFromUser());
+        trunk.setFromDomain(dto.getFromDomain());
+        trunk.setCallerIdInFrom(dto.getCallerIdInFrom());
+        trunk.setExtension(dto.getExtension());
+        trunk.setContactParams(dto.getContactParams());
+        trunk.setInboundCodecPrefs(dto.getInboundCodecPrefs());
+        trunk.setOutboundCodecPrefs(dto.getOutboundCodecPrefs());
+        trunk.setSecureSip(dto.getSecureSip());
+        trunk.setSecureRtp(dto.getSecureRtp());
+        trunk.setSslCaCert(dto.getSslCaCert());
+        trunk.setSslCert(dto.getSslCert());
+        trunk.setSslKey(dto.getSslKey());
+        trunk.setRtpTimeoutSec(dto.getRtpTimeoutSec());
+        trunk.setMinimumSessionExpires(dto.getMinimumSessionExpires());
+        trunk.setSessionTimeout(dto.getSessionTimeout());
+        trunk.setSessionTimers(dto.getSessionTimers());
+
+        return trunkRepository.save(trunk);
+    }
+
+
+    public TrunkPool getTrunkPool(Long poolId) {
+        return trunkPoolRepository.findById(poolId)
+                .orElseThrow(() -> new RuntimeException("TrunkPool not found"));
+    }
+    public List<TrunkPool> getAllTrunkPools() {
+        return trunkPoolRepository.findAll();
+    }
+
+    public List<Trunk> getTrunksByTrunkPool(Long poolId) {
+        TrunkPool trunkPool = trunkPoolRepository.findById(poolId)
+                .orElseThrow(() -> new RuntimeException("TrunkPool not found"));
+
+        // Retourne juste la liste des trunks
+        return new ArrayList<>(trunkPool.getTrunks());
+    }
+    public void deleteTrunkPool(Long poolId) {
+        TrunkPool trunkPool = trunkPoolRepository.findById(poolId)
+                .orElseThrow(() -> new RuntimeException("TrunkPool not found"));
+
+        trunkPoolRepository.delete(trunkPool);
+    }
+    public void deleteTrunk(Long trunkId) {
+        Trunk trunk = trunkRepository.findById(trunkId)
+                .orElseThrow(() -> new RuntimeException("Trunk not found"));
+
+        trunkRepository.delete(trunk);
     }
 
 
 
-    public boolean isNumberInTenantPool(Long tenantId, String number) {
+
+
+
+    //configuration dids
+    /*public boolean isNumberInTenantPool(Long tenantId, String number) {
         List<TrunkPool> pools = trunkPoolRepository.findByTenantIdAndActiveTrue(tenantId);
 
         for (TrunkPool pool : pools) {
@@ -51,100 +194,10 @@ public class TrunkPoolService {
             }
         }
         return false;
-    }
-
-
-
-    @Transactional
-    public TrunkPool createTrunkPool(Long tenantId, TrunkPoolCreateRequest request) {
-        // Récupération du Tenant
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new RuntimeException("Tenant not found"));
-
-        // Création du TrunkPool
-        TrunkPool trunkPool = new TrunkPool();
-        trunkPool.setTenant(tenant);
-        trunkPool.setCountryCode(request.getCountryCode());
-        trunkPool.setAreaCode(request.getAreaCode());
-        trunkPool.setLocalCode(request.getLocalCode());
-        trunkPool.setStartNumber(request.getStartNumber());
-        trunkPool.setEndNumber(request.getEndNumber());
-        trunkPool.setActive(true);
-
-        // Initialisation de la liste des Trunks
-        trunkPool.setTrunks(new ArrayList<>());
-
-        // --- Cas 1 : plusieurs trunks ---
-        if (request.getTrunks() != null && !request.getTrunks().isEmpty()) {
-            for (TrunkPoolCreateRequest.TrunkRequest tReq : request.getTrunks()) {
-                Trunk trunk = buildTrunkFromRequest(tReq, tenant, trunkPool);
-                trunkPool.getTrunks().add(trunk);
-            }
-        }
-        // --- Cas 2 : un seul trunk ---
-        else if (request.getSingleTrunk() != null) {
-            Trunk trunk = buildTrunkFromRequest(request.getSingleTrunk(), tenant, trunkPool);
-            trunkPool.getTrunks().add(trunk);
-        }
-
-        // Définir le Trunk principal si au moins un trunk existe
-        if (!trunkPool.getTrunks().isEmpty()) {
-            trunkPool.setTrunk(trunkPool.getTrunks().get(0));
-        }
-
-        // Sauvegarde unique grâce au cascade
-        trunkPoolRepository.save(trunkPool);
-
-        return trunkPool;
-    }
-
-    /**
-     * Méthode utilitaire pour construire un Trunk à partir d'un TrunkRequest
-     */
-    private Trunk buildTrunkFromRequest(TrunkPoolCreateRequest.TrunkRequest tReq, Tenant tenant, TrunkPool trunkPool) {
-        Trunk trunk = new Trunk();
-        trunk.setTenant(tenant);
-        trunk.setName(tReq.getName());
-        trunk.setUsername(tReq.getUsername());
-        trunk.setPassword(tReq.getPassword());
-        trunk.setRealm(tReq.getRealm());
-        trunk.setProxy(tReq.getProxy());
-        trunk.setRegisterEnabled(tReq.isRegisterEnabled());
-        trunk.setRegisterProxy(tReq.getRegisterProxy());
-        trunk.setOutboundProxy(tReq.getOutboundProxy());
-        trunk.setProxyPort(tReq.getProxyPort());
-        trunk.setExpireSeconds(tReq.getExpireSeconds());
-        trunk.setRetrySeconds(tReq.getRetrySeconds());
-        trunk.setRegisterTransport(tReq.getRegisterTransport());
-        trunk.setFromUser(tReq.getFromUser());
-        trunk.setFromDomain(tReq.getFromDomain());
-        trunk.setCallerIdInFrom(tReq.getCallerIdInFrom());
-        trunk.setExtension(tReq.getExtension());
-        trunk.setContactParams(tReq.getContactParams());
-        trunk.setInboundCodecPrefs(tReq.getInboundCodecPrefs());
-        trunk.setOutboundCodecPrefs(tReq.getOutboundCodecPrefs());
-        trunk.setSecureSip(tReq.getSecureSip());
-        trunk.setSecureRtp(tReq.getSecureRtp());
-        trunk.setSslCaCert(tReq.getSslCaCert());
-        trunk.setSslCert(tReq.getSslCert());
-        trunk.setSslKey(tReq.getSslKey());
-        trunk.setRtpTimeoutSec(tReq.getRtpTimeoutSec());
-        trunk.setMinimumSessionExpires(tReq.getMinimumSessionExpires());
-        trunk.setSessionTimeout(tReq.getSessionTimeout());
-        trunk.setSessionTimers(tReq.getSessionTimers());
-        trunk.setActive(true);
-
-        // Lien bidirectionnel
-        trunk.setTrunkPool(trunkPool);
-
-        return trunk;
-    }
-
-    @Transactional
-    public void deleteTrunkPool(Long poolId) {
-        TrunkPool pool = trunkPoolRepository.findById(poolId)
-                .orElseThrow(() -> new RuntimeException("TrunkPool not found"));
-        trunkPoolRepository.delete(pool);
+    }*/
+    //configuration freeswitch
+    public List<TrunkPool> getActivePoolsByTenant(Long tenantId) {
+        return trunkPoolRepository.findByTenantIdAndActiveTrue(tenantId);
     }
 
 }
