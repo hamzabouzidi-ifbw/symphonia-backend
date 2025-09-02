@@ -190,14 +190,6 @@ public class TenantController {
 
     /********************** Trunks ***********************************************/
 
-
-    @GetMapping("/trunks/getall/{tenantId}")
-    public List<Trunk> getByTenant(@PathVariable Long tenantId) {
-        return trunkService.getTrunksByTenant(tenantId);
-    }
-
-
-
     @PostMapping("/add-pool/{tenantId}")
     public ResponseEntity<TrunkPool> createPool(
             @PathVariable Long tenantId,
@@ -260,6 +252,16 @@ public class TenantController {
         trunkPoolService.deleteTrunk(trunkId);
         return ResponseEntity.ok("Trunk supprimé avec succès");
     }
+
+    @GetMapping("/all-trunks")
+    public List<Trunk> getAllTrunks() {
+        return trunkPoolService.getAllTrunks();
+    }
+
+    @GetMapping("/{tenantId}/trunks-by-tenant")
+    public List<Trunk> getTrunksByTenant(@PathVariable Long tenantId) {
+        return trunkService.getTrunksByTenant(tenantId);
+    }
     /********************** DID ***********************************************/
 
     /** 🔹 Créer un DID */
@@ -299,11 +301,13 @@ public class TenantController {
     }
 
     // ------------------- afficher dids -------------------
-    @GetMapping("/dids")
-    public ResponseEntity<List<DidNumber>> getAllDids() {
+
+
+    @GetMapping("/dids") public ResponseEntity<List<DidNumber>> getAllDids() {
         List<DidNumber> dids = didNumberService.getAllDids();
         return ResponseEntity.ok(dids);
     }
+
 
 
 

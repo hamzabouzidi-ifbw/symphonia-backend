@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class DidNumberService {
@@ -215,9 +216,8 @@ public class DidNumberService {
         // Supprimer le DID
         didNumberRepository.delete(did);
     }
-    public List<DidNumber> getAllDids() {
-        return didNumberRepository.findAll();
-    }
+    public List<DidNumber> getAllDids() { return didNumberRepository.findAll(); }
+
     public List<DidNumber> getActiveDidsByTenant(Long tenantId) {
         return didNumberRepository.findByTenantIdAndActiveTrue(tenantId);
     }

@@ -36,7 +36,7 @@ public class CallGroupService {
     public List<CallGroup> getAllCallGroupsWithMembers() {
         return callGroupRepository.findAll(); // Lazy loading à gérer dans JSON
     }
-    public CallGroup updateCallGroup(Long groupId, String newName, String newExtension) {
+   /* public CallGroup updateCallGroup(Long groupId, String newName, String newExtension) {
         CallGroup group = callGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("CallGroup not found"));
 
@@ -44,7 +44,22 @@ public class CallGroupService {
         if (newExtension != null) group.setExtension(newExtension);
 
         return callGroupRepository.save(group);
-    }
+    }*/
+   public CallGroup updateCallGroup(Long groupId, String newName, String newExtension, List<Long> sipProfileIds) {
+       CallGroup group = callGroupRepository.findById(groupId)
+               .orElseThrow(() -> new RuntimeException("CallGroup not found"));
+
+       if (newName != null) group.setGroupName(newName);
+       if (newExtension != null) group.setExtension(newExtension);
+
+       if (sipProfileIds != null && !sipProfileIds.isEmpty()) {
+           Set<SipProfile> newMembers = new HashSet<>(sipProfileRepository.findAllById(sipProfileIds));
+           group.getMembers().addAll(newMembers); // ajoute les nouveaux sans supprimer les anciens
+       }
+
+       return callGroupRepository.save(group);
+   }
+
     public CallGroup addMembersToGroup(Long groupId, List<Long> sipProfileIds) {
         CallGroup group = callGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("CallGroup not found"));

@@ -11,5 +11,6 @@ public interface TrunkRepository extends JpaRepository<Trunk, Long> {
     List<Trunk> findByTenant(Tenant tenant);
 
     List<Trunk> findByTenantIdAndActiveTrue(Long tenantId);
-
+    List<Trunk> findAll();
+    List<Trunk> findByTenantId(Long tenantId);
 }

@@ -180,4 +180,12 @@ public class TrunkPoolService {
         return trunkPoolRepository.findByTenantIdAndActiveTrue(tenantId);
     }
 
+    public List<Trunk> getAllTrunks() {
+        return trunkRepository.findAll();
+    }
+
+    public List<Trunk> getTrunksByTenant(Long tenantId) {
+        return trunkRepository.findByTenantId(tenantId);
+    }
+
 }

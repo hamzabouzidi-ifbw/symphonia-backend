@@ -188,10 +188,21 @@ public class SipUserController {
         List<CallGroup> callGroups = callGroupService.getAllCallGroupsWithMembers();
         return ResponseEntity.ok(callGroups);
     }
-    @PutMapping("/call-groups/{id}")
+    /*@PutMapping("/call-groups/{id}")
     public ResponseEntity<CallGroup> updateGroup(@PathVariable Long id, @RequestBody CallGroupRequest request) {
         CallGroup updated = callGroupService.updateCallGroup(id, request.getGroupName(), request.getExtension());
         return ResponseEntity.ok(updated);
+    }*/
+    @PutMapping("/call-groups/{id}")
+    public CallGroup updateCallGroup(
+            @PathVariable Long id,
+            @RequestBody CallGroupRequest request) {
+        return callGroupService.updateCallGroup(
+                id,
+                request.getGroupName(),
+                request.getExtension(),
+                request.getSipProfileIds()
+        );
     }
     @PostMapping("/call-groups/{id}/members")
     public ResponseEntity<CallGroup> addMembers(@PathVariable Long id, @RequestBody List<Long> sipIds) {
