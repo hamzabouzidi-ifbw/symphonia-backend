@@ -1,15 +1,10 @@
 package com.example.tenant.Controllers;
 
-import com.example.tenant.Entities.SipProfile;
-import com.example.tenant.Entities.Tenant;
-import com.example.tenant.Entities.Trunk;
-import com.example.tenant.Entities.TrunkPool;
+import com.example.tenant.Entities.*;
 import com.example.tenant.Entities.UsersConfig.CallGroup;
+import com.example.tenant.Entities.UsersConfig.CallGroupStrategy;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
-import com.example.tenant.Services.SipUserService;
-import com.example.tenant.Services.TenantService;
-import com.example.tenant.Services.TrunkPoolService;
-import com.example.tenant.Services.TrunkService;
+import com.example.tenant.Services.*;
 import com.example.tenant.Services.UsersConfig.CallGroupService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
@@ -40,6 +36,15 @@ public class FreeSwitchConfigController {
     private TrunkPoolService trunkPoolService;
     @Autowired
     private CallGroupService callGroupService;
+
+    @Autowired
+    private CallLimitService callLimitService;
+
+    @Autowired
+    private DialPlanRestrictionService restrictionService;
+
+    @Autowired
+    private TimeRestrictionService timeRestrictionService;
 
 
 
@@ -109,111 +114,8 @@ public class FreeSwitchConfigController {
         // Pour toutes les autres requêtes inconnues ou non gérées
         return notFoundXml();
     }
-
-
-   /* private ResponseEntity<String> generateDialplanXml(String contextName, String destNumberForLog) {
-        if (!StringUtils.hasText(contextName)) return notFoundXml();
-
-        Optional<Tenant> tenantOpt = tenantService.getByDomain(contextName);
-        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) return notFoundXml();
-        Tenant tenant = tenantOpt.get();
-
-        List<Trunk> trunks = trunkService.getTrunksByTenant(tenant.getId())
-                .stream().filter(Trunk::isActive).toList();
-        String defaultTrunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
-
-        List<DidNumber> dids = didNumberService.getByTenant(tenant.getId())
-                .stream().filter(DidNumber::isActive).toList();
-
-        List<TrunkPool> pools = trunkPoolService.getActivePoolsByTenant(tenant.getId());
-
-        List<CallGroup> groups = callGroupService.getAllCallGroupsWithMembers()
-                .stream().filter(CallGroup::isActive).toList();
-
-        StringBuilder xml = new StringBuilder();
-        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        xml.append("<document type=\"freeswitch/xml\">\n");
-        xml.append("  <section name=\"dialplan\">\n");
-        xml.append("    <context name=\"").append(contextName).append("\">\n");
-
-        // ---------- Groupes d’appel avec ringall ----------
-        for (CallGroup group : groups) {
-            if (!StringUtils.hasText(group.getExtension()) || group.getMembers() == null || group.getMembers().isEmpty()) continue;
-
-            for (var member : group.getMembers()) {
-                if (member == null || !StringUtils.hasText(member.getExtension())) continue;
-
-                xml.append("      <extension name=\"callgroup_").append(group.getExtension()).append("_").append(member.getExtension()).append("\">\n");
-                xml.append("        <condition field=\"destination_number\" expression=\"^").append(group.getExtension()).append("$\">\n");
-                xml.append("          <action application=\"bridge\" data=\"user/").append(member.getExtension()).append("@").append(contextName).append("\"/>\n");
-                xml.append("        </condition>\n");
-                xml.append("      </extension>\n");
-            }
-        }
-
-        // ---------- DIDs explicites ----------
-        for (DidNumber did : dids) {
-            if (!StringUtils.hasText(did.getNumber())) continue;
-
-            xml.append("      <extension name=\"did_").append(did.getNumber()).append("\">\n");
-            xml.append("        <condition field=\"destination_number\" expression=\"^").append(did.getNumber()).append("$\">\n");
-
-            switch (did.getDestinationType()) {
-                case USER -> xml.append("          <action application=\"bridge\" data=\"user/")
-                        .append(did.getDestinationValue()).append("@").append(contextName).append("\"/>\n");
-                case IVR, QUEUE -> xml.append("          <action application=\"transfer\" data=\"")
-                        .append(did.getDestinationValue()).append("@").append(contextName).append("\"/>\n");
-                default -> {
-                    if (!defaultTrunkName.isEmpty()) {
-                        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
-                                .append(defaultTrunkName).append("/").append(did.getNumber()).append("\"/>\n");
-                    } else {
-                        xml.append("          <action application=\"respond\" data=\"480 Temporarily Unavailable\"/>\n");
-                    }
-                }
-            }
-            xml.append("        </condition>\n");
-            xml.append("      </extension>\n");
-        }
-
-        // ---------- DIDs via pools ----------
-        for (TrunkPool pool : pools) {
-            for (int num = pool.getStartNumber(); num <= pool.getEndNumber(); num++) {
-                String did = pool.getCountryCode() + pool.getAreaCode() + pool.getLocalCode()
-                        + String.format("%04d", num);
-                xml.append("      <extension name=\"pool_did_").append(did).append("\">\n");
-                xml.append("        <condition field=\"destination_number\" expression=\"^").append(did).append("$\">\n");
-
-                String gw = (pool.getTrunk() != null && pool.getTrunk().isActive()) ? pool.getTrunk().getName() : defaultTrunkName;
-
-                if (StringUtils.hasText(gw)) {
-                    xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(gw).append("/").append(did).append("\"/>\n");
-                } else {
-                    xml.append("          <action application=\"respond\" data=\"480 Temporarily Unavailable\"/>\n");
-                }
-                xml.append("        </condition>\n");
-                xml.append("      </extension>\n");
-            }
-        }
-
-        // ---------- Appels internes ----------
-        xml.append("      <extension name=\"local_calls\">\n");
-        xml.append("        <condition field=\"destination_number\" expression=\"^(\\d{4})$\">\n");
-        xml.append("          <action application=\"bridge\" data=\"user/$1@").append(contextName).append("\"/>\n");
-        xml.append("        </condition>\n");
-        xml.append("      </extension>\n");
-
-        xml.append("    </context>\n");
-        xml.append("  </section>\n");
-        xml.append("</document>");
-
-        if (StringUtils.hasText(destNumberForLog)) {
-            System.out.println("[XML-CURL] DIALPLAN context=" + contextName + " dest=" + destNumberForLog);
-        }
-
-        return ResponseEntity.ok(xml.toString());
-    }*/
-
+//original
+/*
     private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
 
         if (!StringUtils.hasText(contextName)) {
@@ -345,6 +247,206 @@ public class FreeSwitchConfigController {
         xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
         xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
                 .append(defaultTrunkName).append("/$1\"/>\n");
+        xml.append("        </condition>\n");
+        xml.append("      </extension>\n");
+
+        xml.append("    </context>\n");
+        xml.append("  </section>\n");
+        xml.append("</document>");
+
+        return ResponseEntity.ok(xml.toString());
+    }
+*/
+
+
+
+
+
+    private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
+
+        if (!StringUtils.hasText(contextName)) {
+            System.out.println("ERREUR: contextName est vide");
+            return notFoundXml();
+        }
+
+        Optional<Tenant> tenantOpt = tenantService.getByDomain(contextName);
+        if (tenantOpt.isEmpty() || !tenantOpt.get().isActive()) {
+            System.out.println("Tenant non trouvé ou inactif pour: " + contextName);
+            return notFoundXml();
+        }
+
+        Tenant tenant = tenantOpt.get();
+        System.out.println("Tenant trouvé: " + tenant.getDomainName());
+
+        // Récupérer les trunks actifs
+        List<Trunk> trunks = trunkPoolService.getActiveTrunksByTenant(tenant.getId());
+        String defaultTrunkName = trunks.isEmpty() ? "" : trunks.get(0).getName();
+
+        // Récupérer les DIDs actifs
+        List<DidNumber> dids = didNumberService.getActiveDidsByTenant(tenant.getId());
+
+        // Récupérer les pools actifs
+        List<TrunkPool> pools = trunkPoolService.getActivePoolsByTenant(tenant.getId());
+
+        // Groupes d'appel
+        List<CallGroup> groups = callGroupService.getAllCallGroupsWithMembers()
+                .stream().filter(CallGroup::isActive).toList();
+
+        List<SipProfile> profiles = sipUserService.getActiveProfilesByTenant(tenant.getId());
+
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+        xml.append("<document type=\"freeswitch/xml\">\n");
+        xml.append("  <section name=\"dialplan\">\n");
+        xml.append("    <context name=\"").append(contextName).append("\">\n");
+
+        // ------------------ Gestion des restrictions SIP ------------------
+        for (SipProfile profile : profiles) {
+
+            CallLimit limit = callLimitService.getBySipProfile(profile.getId());
+            List<DialPlanRestriction> restrictions = restrictionService.getBySipProfile(profile.getId());
+            List<TimeRestriction> timeRestrictions = timeRestrictionService.getBySipProfile(profile.getId());
+
+            if (!restrictions.isEmpty() || limit != null || !timeRestrictions.isEmpty()) {
+
+                xml.append("      <extension name=\"ext_").append(profile.getExtension()).append("\">\n");
+                xml.append("        <action application=\"log\" data=\"DEBUG: Processing restrictions for ")
+                        .append(profile.getExtension()).append("\"/>\n");
+
+                if (limit != null) {
+                    xml.append("        <action application=\"limit\" data=\"hash ")
+                            .append(contextName).append(" ").append(profile.getExtension()).append(" ")
+                            .append(limit.getMaxConcurrentCalls()).append(" !USER_BUSY\"/>\n");
+                }
+
+                for (TimeRestriction t : timeRestrictions) {
+                    if (t.isAllow()) {
+                        xml.append("        <condition field=\"time-of-day\" expression=\"")
+                                .append(t.getStartTime()).append("-").append(t.getEndTime()).append("\"/>\n");
+                        xml.append("        <action application=\"log\" data=\"DEBUG: Time restriction applied for ")
+                                .append(profile.getExtension()).append("\"/>\n");
+                    }
+                }
+
+                for (DidNumber did : dids) {
+                    Trunk trunk = did.getTrunk();
+                    TrunkPool pool = trunk.getTrunkPool();
+
+                    // DID complet
+                    String fullDidNumber = "" + pool.getCountryCode() + pool.getAreaCode() + pool.getLocalCode() + did.getNumber();
+
+                    boolean blocked = false;
+                    for (DialPlanRestriction r : restrictions) {
+                        String prefix = r.getRegex(); // ex: "10" ou "11"
+
+                        // Ici on ne compare que le DID réel (dernier segment)
+                        if (!r.isAllowed() && did.getNumber().startsWith(prefix)) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+
+                    if (blocked) {
+                        xml.append("        <condition field=\"destination_number\" expression=\"^").append(fullDidNumber).append("$\"/>\n");
+                        xml.append("          <action application=\"hangup\" data=\"CALL_REJECTED\"/>\n");
+                        xml.append("          <action application=\"log\" data=\"DEBUG: DID ").append(fullDidNumber).append(" bloqué pour profil ")
+                                .append(profile.getExtension()).append("\"/>\n");
+                    } else {
+                        xml.append("        <condition field=\"destination_number\" expression=\"^").append(fullDidNumber).append("$\"/>\n");
+                        switch (did.getDestinationType()) {
+                            case USER:
+                                xml.append("          <action application=\"bridge\" data=\"user/")
+                                        .append(did.getDestinationValue())
+                                        .append("@").append(contextName).append("\"/>\n");
+                                break;
+                            case IVR:
+                            case QUEUE:
+                                xml.append("          <action application=\"transfer\" data=\"")
+                                        .append(did.getDestinationValue())
+                                        .append("@").append(contextName).append("\"/>\n");
+                                break;
+                            default:
+                                if (!defaultTrunkName.isEmpty()) {
+                                    xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
+                                            .append(defaultTrunkName).append("/").append(fullDidNumber).append("\"/>\n");
+                                }
+                                break;
+                        }
+                        xml.append("          <action application=\"log\" data=\"DEBUG: DID ").append(fullDidNumber).append(" autorisé pour profil ")
+                                .append(profile.getExtension()).append("\"/>\n");
+                    }
+                }
+
+                xml.append("      </extension>\n");
+            }
+        }
+
+        // ---------- Groupes d’appel ----------
+        for (CallGroup group : groups) {
+            if (!StringUtils.hasText(group.getExtension())) continue;
+            if (group.getMembers() == null || group.getMembers().isEmpty()) continue;
+
+            String endpoints = group.getMembers().stream()
+                    .filter(Objects::nonNull)
+                    .map(m -> "user/" + m.getExtension() + "@" + contextName)
+                    .collect(Collectors.joining(","));
+
+            String chanVars = "{ignore_early_media=true,ringback=${us-ring},originate_timeout=25,leg_timeout=25,hangup_after_bridge=true,continue_on_fail=true}";
+
+            xml.append("      <extension name=\"callgroup_").append(group.getExtension()).append("\">\n");
+            xml.append("        <condition field=\"destination_number\" expression=\"^").append(group.getExtension()).append("$\">\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
+            xml.append("          <action application=\"bridge\" data=\"").append(chanVars).append(endpoints).append("\"/>\n");
+            xml.append("        </condition>\n");
+            xml.append("      </extension>\n");
+        }
+
+        // ====== Gestion des DIDs individuels ======
+        for (DidNumber did : dids) {
+            xml.append("      <extension name=\"did_").append(did.getNumber()).append("\">\n");
+            xml.append("        <condition field=\"destination_number\" expression=\"^").append(did.getNumber()).append("$\">\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
+            xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
+
+            switch (did.getDestinationType()) {
+                case USER:
+                    xml.append("          <action application=\"bridge\" data=\"user/")
+                            .append(did.getDestinationValue())
+                            .append("@").append(contextName).append("\"/>\n");
+                    break;
+                case IVR:
+                case QUEUE:
+                    xml.append("          <action application=\"transfer\" data=\"")
+                            .append(did.getDestinationValue())
+                            .append("@").append(contextName).append("\"/>\n");
+                    break;
+                default:
+                    if (!defaultTrunkName.isEmpty()) {
+                        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/")
+                                .append(defaultTrunkName).append("/").append(did.getNumber()).append("\"/>\n");
+                    }
+                    break;
+            }
+            xml.append("        </condition>\n");
+            xml.append("      </extension>\n");
+        }
+
+        // ====== Appels internes ======
+        xml.append("      <extension name=\"local_calls\">\n");
+        xml.append("        <condition field=\"destination_number\" expression=\"^(\\d{4})$\">\n");
+        xml.append("          <action application=\"set\" data=\"voicemail_authorized=true\"/>\n");
+        xml.append("          <action application=\"bridge\" data=\"user/$1@").append(contextName).append("\"/>\n");
+        xml.append("          <action application=\"voicemail\" data=\"").append(contextName).append(" $1\"/>\n");
+        xml.append("        </condition>\n");
+        xml.append("      </extension>\n");
+
+        // ====== Appels sortants ======
+        xml.append("      <extension name=\"outbound_calls\">\n");
+        xml.append("        <condition field=\"destination_number\" expression=\"^\\d+$\">\n");
+        xml.append("          <action application=\"set\" data=\"effective_caller_id_name=${caller_id_name}\"/>\n");
+        xml.append("          <action application=\"set\" data=\"effective_caller_id_number=${caller_id_number}\"/>\n");
+        xml.append("          <action application=\"bridge\" data=\"sofia/gateway/").append(defaultTrunkName).append("/$1\"/>\n");
         xml.append("        </condition>\n");
         xml.append("      </extension>\n");
 

@@ -7,6 +7,7 @@ import com.example.tenant.Entities.UsersConfig.CallGroup;
 import com.example.tenant.Entities.UsersConfig.DidNumber;
 import com.example.tenant.Entities.UsersConfig.VoicemailConfig;
 import com.example.tenant.Repositories.SipProfileRepository;
+import com.example.tenant.Services.SipProfileRestrictionService;
 import com.example.tenant.Services.SipUserService;
 import com.example.tenant.Services.UsersConfig.CallGroupService;
 import com.example.tenant.Services.UsersConfig.DidNumberService;
@@ -36,6 +37,8 @@ public class SipUserController {
     private VoicemailConfigService voicemailConfigService;
     @Autowired
     private CallGroupService callGroupService;
+    @Autowired
+    private SipProfileRestrictionService restrictionService;
     @PostMapping()
     public ResponseEntity<?> createSipUser(
             @RequestBody CreateSipUserRequest request,
@@ -220,6 +223,51 @@ public class SipUserController {
         return ResponseEntity.ok(updated);
     }
 
+    @PostMapping("/restrictions")
+    public ResponseEntity<String> createRestrictions(@RequestBody RestrictionRequest request) {
+        try {
+            restrictionService.createRestrictions(
+                    request.getDomain(),
+                    request.getExtension(),
+                    request.getMaxCalls(),
+                    request.getDialplanRegex(),
+                    request.isAllowedDialplan(),
+                    request.getStartTime(),
+                    request.getEndTime(),
+                    request.isAllowTime()
+            );
+            return ResponseEntity.ok("Restrictions créées pour " + request.getExtension() + "@" + request.getDomain());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Erreur : " + e.getMessage());
+        }
+    }
+
+    /* @GetMapping("/restrictions/{domain}/{extension}")
+    public SipProfileRestrictions getRestrictions(@PathVariable String domain,
+                                                  @PathVariable String extension) {
+        return restrictionService.getRestrictions(domain, extension);
+    }*/
 
 
+    // 🔹 Récupérer toutes les restrictions de TOUS les profils
+    @GetMapping("/get-all-restrictions")
+    public ResponseEntity<List<SipProfileRestrictions>> getProfilesWithRestrictions() {
+        List<SipProfileRestrictions> restrictions = restrictionService.getProfilesWithRestrictions();
+
+        if (restrictions.isEmpty()) {
+            return ResponseEntity.noContent().build(); // 204 si aucun résultat
+        }
+
+        return ResponseEntity.ok(restrictions); // 200 avec la liste JSON
+    }
+    @PutMapping("/update-restriction")
+    public String updateRestrictions(@RequestBody RestrictionUpdateRequest request) {
+        restrictionService.updateRestrictions(request);
+        return "Restrictions mises à jour avec succès pour " + request.getExtension() + "@" + request.getDomain();
+    }
+    @DeleteMapping("/delete-restriction/{domain}/{extension}")
+    public String deleteRestrictions(@PathVariable String domain, @PathVariable String extension) {
+        restrictionService.deleteRestrictions(domain, extension);
+        return "Toutes les restrictions du profil " + extension + "@" + domain + " ont été supprimées";
+    }
 }

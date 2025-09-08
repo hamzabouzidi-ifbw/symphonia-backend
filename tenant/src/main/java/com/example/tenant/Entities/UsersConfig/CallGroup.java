@@ -35,6 +35,17 @@ public class CallGroup {
 
     private boolean active = true;
 
+    @Enumerated(EnumType.STRING)
+    private CallGroupStrategy strategy = CallGroupStrategy.RING_ALL; // valeur par défaut
+
+    public CallGroupStrategy getStrategy() {
+        return strategy;
+    }
+
+    public void setStrategy(CallGroupStrategy strategy) {
+        this.strategy = strategy;
+    }
+
     // Getters et Setters
 
 

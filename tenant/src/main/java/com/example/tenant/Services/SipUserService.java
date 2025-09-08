@@ -212,7 +212,11 @@ public class SipUserService {
         return sipProfileRepository.findAll();
     }
 
-
-
+    public List<SipProfile> getActiveProfilesByTenant(Long tenantId) {
+        return sipProfileRepository.findActiveByTenant(tenantId);
+    }
+    public List<SipProfile> findAll() {
+        return sipProfileRepository.findAll();
+    }
 
 }
