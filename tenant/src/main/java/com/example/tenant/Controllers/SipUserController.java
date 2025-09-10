@@ -191,11 +191,7 @@ public class SipUserController {
         List<CallGroup> callGroups = callGroupService.getAllCallGroupsWithMembers();
         return ResponseEntity.ok(callGroups);
     }
-    /*@PutMapping("/call-groups/{id}")
-    public ResponseEntity<CallGroup> updateGroup(@PathVariable Long id, @RequestBody CallGroupRequest request) {
-        CallGroup updated = callGroupService.updateCallGroup(id, request.getGroupName(), request.getExtension());
-        return ResponseEntity.ok(updated);
-    }*/
+
     @PutMapping("/call-groups/{id}")
     public CallGroup updateCallGroup(
             @PathVariable Long id,
@@ -241,12 +237,6 @@ public class SipUserController {
             return ResponseEntity.badRequest().body("Erreur : " + e.getMessage());
         }
     }
-
-    /* @GetMapping("/restrictions/{domain}/{extension}")
-    public SipProfileRestrictions getRestrictions(@PathVariable String domain,
-                                                  @PathVariable String extension) {
-        return restrictionService.getRestrictions(domain, extension);
-    }*/
 
 
     // 🔹 Récupérer toutes les restrictions de TOUS les profils

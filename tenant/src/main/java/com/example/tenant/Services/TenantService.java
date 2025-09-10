@@ -306,6 +306,25 @@ public class TenantService {
         return totalUsedUsers;
     }
 
+    public List<LicenceAssignmentRequest> getAllLicenceAssignments(String token) {
+        List<Tenant> tenants = tenantRepository.findAll();
+        List<LicenceAssignmentRequest> allAssignments = new ArrayList<>();
+
+        for (Tenant tenant : tenants) {
+            try {
+                List<LicenceAssignmentRequest> licences =
+                        licenceServiceClient.getLicencesByTenant(token, tenant.getId());
+                allAssignments.addAll(licences);
+            } catch (Exception e) {
+                System.err.println("Erreur lors de la récupération des licences pour le tenant "
+                        + tenant.getId() + ": " + e.getMessage());
+            }
+        }
+        return allAssignments;
+    }
+
+
+
 
 
 }

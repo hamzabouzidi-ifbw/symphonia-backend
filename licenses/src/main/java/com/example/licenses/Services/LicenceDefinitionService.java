@@ -164,4 +164,6 @@ public class LicenceDefinitionService {
         assignment.setUsedUsers(request.getUsedUsers());
         return repositoryLicence.save(assignment);
     }
+
+
 }

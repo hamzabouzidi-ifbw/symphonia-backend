@@ -258,10 +258,6 @@ public class FreeSwitchConfigController {
     }
 */
 
-
-
-
-
     private ResponseEntity<String> generateDialplanXml(String contextName, String destNumber) {
 
         if (!StringUtils.hasText(contextName)) {
@@ -456,6 +452,8 @@ public class FreeSwitchConfigController {
 
         return ResponseEntity.ok(xml.toString());
     }
+
+
 
 
     private ResponseEntity<String> generateDirectoryXml(String domain, String user) {

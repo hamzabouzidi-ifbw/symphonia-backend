@@ -188,6 +188,19 @@ public class TenantController {
         }
     }
 
+    // ✅ TenantController (ou un contrôleur LicenceAssignmentController)
+    @GetMapping("/licenses/assignments")
+    public ResponseEntity<List<LicenceAssignmentRequest>> getAllLicenceAssignments(
+            @RequestHeader("Authorization") String authToken) {
+        try {
+            List<LicenceAssignmentRequest> assignments = tenantService.getAllLicenceAssignments(authToken);
+            return ResponseEntity.ok(assignments);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
+        }
+    }
+
+
     /********************** Trunks ***********************************************/
 
     @PostMapping("/add-pool/{tenantId}")
