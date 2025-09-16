@@ -3,6 +3,8 @@ package com.example.tenant.Entities.UsersConfig;
 import com.example.tenant.Entities.Tenant;
 import com.example.tenant.Entities.Trunk;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 
@@ -26,6 +28,12 @@ public class DidNumber {
     @JoinColumn(name = "trunk_id", nullable = false)
     @JsonIgnore
     private Trunk trunk;
+   /* @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trunk_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)  // 👈 Hibernate demandera à PostgreSQL de supprimer les enfants
+    @JsonIgnore
+    private Trunk trunk;*/
+
 
     @Enumerated(EnumType.STRING)
     @Column(name = "destination_type", nullable = false, length = 20)

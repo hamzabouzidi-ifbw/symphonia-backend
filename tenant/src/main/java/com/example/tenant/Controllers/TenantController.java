@@ -88,7 +88,7 @@ public class TenantController {
             return ResponseEntity.status(403).body(Map.of("error", "Vous n'avez pas la permission de modifier ce tenant."));
         }
     }
-    @DeleteMapping("/{tenantId}")
+    @DeleteMapping("/delete-tenant/{tenantId}")
     public ResponseEntity<?> deleteTenant(@PathVariable Long tenantId,
                                           @RequestHeader("Authorization") String token,
                                           @RequestHeader("role") String role) {
